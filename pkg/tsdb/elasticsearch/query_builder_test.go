@@ -2,6 +2,7 @@ package elasticsearch
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -264,6 +265,42 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 
 			result := reflect.DeepEqual(queryExpectedJSONInterface, queryJSONInterface)
 			So(result, ShouldBeTrue)
+		})
+
+		Convey("Test Term Aggregate Query", func() {
+			testQueryJSON := `{
+			"bucketAggs":[
+			{
+			"field":"name_raw","id":"4","settings":
+			{"order":"desc","orderBy":"_term","size":"10"},"type":"terms"},
+			{"field":"rfc460Timestamp","id":"2",
+			"settings":{"interval":"1m","min_doc_count":0,"trimEdges":0},"type":"date_histogram"}],
+			"dsType":"elasticsearch",
+			"filters":[{"boolOp":"AND","not":false,"type":"rfc190Scope","value":"*.hmp.metricsd"},
+			{"boolOp":"AND","not":false,"type":"name_raw","value":"builtin.general.*_instance_count"}],
+			"metricObject":{},"metrics":[{"field":"value","id":"1","meta":{},"options":{},"settings":{},"type":"sum"}],
+			"mode":0,"numToGraph":10,"prependHostName":false,
+			"query":"(rfc190Scope:*.hmp.metricsd) AND (name_raw:builtin.general.*_instance_count)",
+			"refId":"A","regexAlias":false,
+			"selectedApplication":"","selectedHost":"","selectedLocation":"",
+			"timeField":"rfc460Timestamp",useFullHostName":"","useQuery":false}`
+
+			//expectedResponseJSON = `{}``
+			model := &RequestModel{}
+
+			err := json.Unmarshal([]byte(testQueryJSON), model)
+			So(err, ShouldBeNil)
+
+			testTimeRange := &tsdb.TimeRange{
+				From: "5m",
+				To:   "now",
+				Now:  time.Now(),
+			}
+
+			queryJSON, err := model.buildQueryJSON(testTimeRange)
+			So(err, ShouldBeNil)
+
+			fmt.Println(queryJSON)
 		})
 	})
 }

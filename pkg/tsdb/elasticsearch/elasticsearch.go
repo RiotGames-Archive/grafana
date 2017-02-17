@@ -68,6 +68,10 @@ func (e *ElasticsearchExecutor) buildRequest(queryInfo *tsdb.Query, timeRange *t
 		return nil, err
 	}
 
+	fmt.Printf("\n=====\n")
+	fmt.Printf("%#v\n", string(rawModel))
+
+	fmt.Printf("\n=====\n")
 	err = json.Unmarshal(rawModel, esRequestModel)
 	if err != nil {
 		return nil, err
@@ -77,6 +81,8 @@ func (e *ElasticsearchExecutor) buildRequest(queryInfo *tsdb.Query, timeRange *t
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(esRequestJSON)
 
 	reader := strings.NewReader(esRequestJSON)
 	req, err := http.NewRequest("GET", esRequestURL, reader)
