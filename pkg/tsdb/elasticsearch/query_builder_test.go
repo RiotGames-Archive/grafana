@@ -1,22 +1,21 @@
 package elasticsearch
 
 import (
-	"encoding/json"
-	"fmt"
-	"reflect"
-	"strings"
-	"testing"
-	"time"
+  "encoding/json"
+  "reflect"
+  "strings"
+  "testing"
+  "time"
 
-	"github.com/grafana/grafana/pkg/tsdb"
-	. "github.com/smartystreets/goconvey/convey"
+  "github.com/grafana/grafana/pkg/tsdb"
+  . "github.com/smartystreets/goconvey/convey"
 )
 
-func TestElasticserachQueryBuilder(t *testing.T) {
-	Convey("Elasticserach QueryBuilder query testing", t, func() {
+func TestElasticSearchQueryBuilder(t *testing.T) {
+  Convey("Elasticserach QueryBuilder query testing", t, func() {
 
-		Convey("Build test average metric with moving average", func() {
-			var testElasticsearchModelRequestJSON = `
+    Convey("Build test average metric with moving average", func() {
+      var testElasticsearchModelRequestJSON = `
 			{
 			      "bucketAggs": [
 			        {
@@ -67,34 +66,38 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 			}
 			`
 
-			var testElasticsearchQueryJSON = `
+      var testElasticsearchQueryJSON = `
 			{
 			  "size": 0,
 			  "query": {
-			    "bool": {
-			      "filter": [
-			        {
-			          "range": {
-			            "timestamp": {
-			              "gte": "<FROM_TIMESTAMP>",
-			              "lte": "<TO_TIMESTAMP>",
-			              "format": "epoch_millis"
-			            }
-			          }
-			        },
-			        {
-			          "query_string": {
-			            "analyze_wildcard": true,
-			            "query": "(test:query) AND (name:sample)"
-			          }
-			        }
-			      ]
-			    }
-			  },
+          "filtered": {
+            "query": {
+              "query_string": {
+                "analyze_wildcard": true,
+                "query": "(test:query) AND (name:sample)"
+              }
+            },
+            "filter": {
+              "bool": {
+                "must": [
+                  {
+                    "range": {
+                      "timestamp": {
+                        "gte":"<FROM_TIMESTAMP>",
+                        "lte":"<TO_TIMESTAMP>",
+                        "format":"epoch_millis"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
 			  "aggs": {
 			    "2": {
 			      "date_histogram": {
-			        "interval": "5s",
+			        "interval": "200ms",
 			        "field": "timestamp",
 			        "min_doc_count": 0,
 			        "extended_bounds": {
@@ -125,48 +128,48 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 			  }
 			}`
 
-			model := &RequestModel{}
+      model := &RequestModel{}
 
-			err := json.Unmarshal([]byte(testElasticsearchModelRequestJSON), model)
-			So(err, ShouldBeNil)
+      err := json.Unmarshal([]byte(testElasticsearchModelRequestJSON), model)
+      So(err, ShouldBeNil)
 
-			testTimeRange := &tsdb.TimeRange{
-				From: "5m",
-				To:   "now",
-				Now:  time.Now(),
-			}
+      testTimeRange := &tsdb.TimeRange{
+        From: "5m",
+        To:   "now",
+        Now:  time.Now(),
+      }
 
-			queryJSON, err := model.buildQueryJSON(testTimeRange)
-			So(err, ShouldBeNil)
+      queryJSON, err := model.buildQueryJSON(testTimeRange)
+      So(err, ShouldBeNil)
 
-			var queryExpectedJSONInterface, queryJSONInterface interface{}
+      var queryExpectedJSONInterface, queryJSONInterface interface{}
 
-			err = json.Unmarshal([]byte(queryJSON), &queryJSONInterface)
-			So(err, ShouldBeNil)
+      err = json.Unmarshal([]byte(queryJSON), &queryJSONInterface)
+      So(err, ShouldBeNil)
 
-			testElasticsearchQueryJSON = strings.Replace(
-				testElasticsearchQueryJSON,
-				"<FROM_TIMESTAMP>",
-				convertTimeToUnixNano(testTimeRange.From, testTimeRange.Now),
-				-1,
-			)
+      testElasticsearchQueryJSON = strings.Replace(
+        testElasticsearchQueryJSON,
+        "<FROM_TIMESTAMP>",
+        convertTimeToUnixNano(testTimeRange.From, testTimeRange.Now),
+        -1,
+      )
 
-			testElasticsearchQueryJSON = strings.Replace(
-				testElasticsearchQueryJSON,
-				"<TO_TIMESTAMP>",
-				convertTimeToUnixNano(testTimeRange.To, testTimeRange.Now),
-				-1,
-			)
+      testElasticsearchQueryJSON = strings.Replace(
+        testElasticsearchQueryJSON,
+        "<TO_TIMESTAMP>",
+        convertTimeToUnixNano(testTimeRange.To, testTimeRange.Now),
+        -1,
+      )
 
-			err = json.Unmarshal([]byte(testElasticsearchQueryJSON), &queryExpectedJSONInterface)
-			So(err, ShouldBeNil)
+      err = json.Unmarshal([]byte(testElasticsearchQueryJSON), &queryExpectedJSONInterface)
+      So(err, ShouldBeNil)
 
-			result := reflect.DeepEqual(queryExpectedJSONInterface, queryJSONInterface)
-			So(result, ShouldBeTrue)
-		})
+      result := reflect.DeepEqual(queryExpectedJSONInterface, queryJSONInterface)
+      So(result, ShouldBeTrue)
+    })
 
-		Convey("Test Wildcards and Quotes", func() {
-			testRequestModelJSON := `
+    Convey("Test Wildcards and Quotes", func() {
+      testRequestModelJSON := `
 			{
 				"alias": "New",
 				"bucketAggs": [{
@@ -185,28 +188,34 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 				"timeField": "timestamp"
 			}`
 
-			expectedResultJSON := `
+      expectedResultJSON := `
 			{
 				"size": 0,
 				"query": {
-					"bool": {
-						"filter": [{
-							"range": {
-								"timestamp": {
-									"gte": "<FROM_TIMESTAMP>",
-									"lte": "<TO_TIMESTAMP>",
-									"format": "epoch_millis"
-								}
-							}
-						},
-						{
-							"query_string": {
-								"analyze_wildcard": true,
-								"query": "scope:$location.leagueconnect.api AND name:*CreateRegistration AND name:\"*.201-responses.rate\""
-							}
-						}]
-					}
-				},
+          "filtered": {
+            "query": {
+              "query_string": {
+                "analyze_wildcard": true,
+                "query": "scope:$location.leagueconnect.api AND name:*CreateRegistration AND name:\"*.201-responses.rate\""
+              }
+            },
+            "filter": {
+              "bool": {
+                "must": [
+                  {
+                    "range": {
+                      "timestamp": {
+                        "gte":"<FROM_TIMESTAMP>",
+                        "lte":"<TO_TIMESTAMP>",
+                        "format":"epoch_millis"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
 				"aggs": {
 					"2": {
 						"aggs": {
@@ -227,80 +236,44 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 					}
 				}
 			}`
-			model := &RequestModel{}
+      model := &RequestModel{}
 
-			err := json.Unmarshal([]byte(testRequestModelJSON), model)
-			So(err, ShouldBeNil)
+      err := json.Unmarshal([]byte(testRequestModelJSON), model)
+      So(err, ShouldBeNil)
 
-			testTimeRange := &tsdb.TimeRange{
-				From: "5m",
-				To:   "now",
-				Now:  time.Now(),
-			}
+      testTimeRange := &tsdb.TimeRange{
+        From: "5m",
+        To:   "now",
+        Now:  time.Now(),
+      }
 
-			queryJSON, err := model.buildQueryJSON(testTimeRange)
-			So(err, ShouldBeNil)
+      queryJSON, err := model.buildQueryJSON(testTimeRange)
+      So(err, ShouldBeNil)
 
-			expectedResultJSON = strings.Replace(
-				expectedResultJSON,
-				"<FROM_TIMESTAMP>",
-				convertTimeToUnixNano(testTimeRange.From, testTimeRange.Now),
-				-1,
-			)
+      expectedResultJSON = strings.Replace(
+        expectedResultJSON,
+        "<FROM_TIMESTAMP>",
+        convertTimeToUnixNano(testTimeRange.From, testTimeRange.Now),
+        -1,
+      )
 
-			expectedResultJSON = strings.Replace(
-				expectedResultJSON,
-				"<TO_TIMESTAMP>",
-				convertTimeToUnixNano(testTimeRange.To, testTimeRange.Now),
-				-1,
-			)
+      expectedResultJSON = strings.Replace(
+        expectedResultJSON,
+        "<TO_TIMESTAMP>",
+        convertTimeToUnixNano(testTimeRange.To, testTimeRange.Now),
+        -1,
+      )
 
-			var queryExpectedJSONInterface, queryJSONInterface interface{}
+      var queryExpectedJSONInterface, queryJSONInterface interface{}
 
-			err = json.Unmarshal([]byte(queryJSON), &queryJSONInterface)
-			So(err, ShouldBeNil)
+      err = json.Unmarshal([]byte(queryJSON), &queryJSONInterface)
+      So(err, ShouldBeNil)
 
-			err = json.Unmarshal([]byte(expectedResultJSON), &queryExpectedJSONInterface)
-			So(err, ShouldBeNil)
+      err = json.Unmarshal([]byte(expectedResultJSON), &queryExpectedJSONInterface)
+      So(err, ShouldBeNil)
 
-			result := reflect.DeepEqual(queryExpectedJSONInterface, queryJSONInterface)
-			So(result, ShouldBeTrue)
-		})
-
-		Convey("Test Term Aggregate Query", func() {
-			testQueryJSON := `{
-			"bucketAggs":[
-			{
-			"field":"name_raw","id":"4","settings":
-			{"order":"desc","orderBy":"_term","size":"10"},"type":"terms"},
-			{"field":"rfc460Timestamp","id":"2",
-			"settings":{"interval":"1m","min_doc_count":0,"trimEdges":0},"type":"date_histogram"}],
-			"dsType":"elasticsearch",
-			"filters":[{"boolOp":"AND","not":false,"type":"rfc190Scope","value":"*.hmp.metricsd"},
-			{"boolOp":"AND","not":false,"type":"name_raw","value":"builtin.general.*_instance_count"}],
-			"metricObject":{},"metrics":[{"field":"value","id":"1","meta":{},"options":{},"settings":{},"type":"sum"}],
-			"mode":0,"numToGraph":10,"prependHostName":false,
-			"query":"(rfc190Scope:*.hmp.metricsd) AND (name_raw:builtin.general.*_instance_count)",
-			"refId":"A","regexAlias":false,
-			"selectedApplication":"","selectedHost":"","selectedLocation":"",
-			"timeField":"rfc460Timestamp",useFullHostName":"","useQuery":false}`
-
-			//expectedResponseJSON = `{}``
-			model := &RequestModel{}
-
-			err := json.Unmarshal([]byte(testQueryJSON), model)
-			So(err, ShouldBeNil)
-
-			testTimeRange := &tsdb.TimeRange{
-				From: "5m",
-				To:   "now",
-				Now:  time.Now(),
-			}
-
-			queryJSON, err := model.buildQueryJSON(testTimeRange)
-			So(err, ShouldBeNil)
-
-			fmt.Println(queryJSON)
-		})
-	})
+      result := reflect.DeepEqual(queryExpectedJSONInterface, queryJSONInterface)
+      So(result, ShouldBeTrue)
+    })
+  })
 }
