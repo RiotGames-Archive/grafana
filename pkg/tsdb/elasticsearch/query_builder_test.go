@@ -2,7 +2,6 @@ package elasticsearch
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,117 +11,117 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestElasticserachQueryBuilder(t *testing.T) {
-	Convey("Elasticserach QueryBuilder query testing", t, func() {
+func TestElasticSearchQueryBuilder(t *testing.T) {
+	Convey("Elasticsearch QueryBuilder query testing", t, func() {
 
 		Convey("Build test average metric with moving average", func() {
 			var testElasticsearchModelRequestJSON = `
 			{
-			      "bucketAggs": [
-			        {
-			          "field": "timestamp",
-			          "id": "2",
-			          "settings": {
-			            "interval": "auto",
-			            "min_doc_count": 0,
-			            "trimEdges": 0
-			          },
-			          "type": "date_histogram"
-			        }
-			      ],
-			      "dsType": "elasticsearch",
-			      "metrics": [
-			        {
-			          "field": "value",
-			          "id": "1",
-			          "inlineScript": "_value * 2",
-			          "meta": {
-
-			          },
-			          "settings": {
-			            "script": {
-			              "inline": "_value * 2"
-			            }
-			          },
-			          "type": "avg"
-			        },
-			        {
-			          "field": "1",
-			          "id": "3",
-			          "meta": {
-
-			          },
-			          "pipelineAgg": "1",
-			          "settings": {
-			            "minimize": false,
-			            "model": "simple",
-			            "window": 5
-			          },
-			          "type": "moving_avg"
-			        }
-			      ],
-			      "query": "(test:query) AND (name:sample)",
-			      "refId": "A",
-			      "timeField": "timestamp"
+				"bucketAggs": [
+					{
+						"field": "timestamp",
+						"id": "2",
+						"settings": {
+							"interval": "auto",
+							"min_doc_count": 0,
+							"trimEdges": 0
+						},
+						"type": "date_histogram"
+					}
+				],
+				"dsType": "elasticsearch",
+				"metrics": [
+					{
+						"field": "value",
+						"id": "1",
+						"inlineScript": "_value * 2",
+						"meta": {},
+						"settings": {
+							"script": {
+								"inline": "_value * 2"
+							}
+						},
+						"type": "avg"
+					},
+					{
+						"field": "1",
+						"id": "3",
+						"meta": {},
+						"pipelineAgg": "1",
+						"settings": {
+							"minimize": false,
+							"model": "simple",
+							"window": 5
+						},
+						"type": "moving_avg"
+					}
+				],
+				"query": "(test:query) AND (name:sample)",
+				"refId": "A",
+				"timeField": "timestamp"
 			}
 			`
 
 			var testElasticsearchQueryJSON = `
 			{
-			  "size": 0,
-			  "query": {
-			    "bool": {
-			      "filter": [
-			        {
-			          "range": {
-			            "timestamp": {
-			              "gte": "<FROM_TIMESTAMP>",
-			              "lte": "<TO_TIMESTAMP>",
-			              "format": "epoch_millis"
-			            }
-			          }
-			        },
-			        {
-			          "query_string": {
-			            "analyze_wildcard": true,
-			            "query": "(test:query) AND (name:sample)"
-			          }
-			        }
-			      ]
-			    }
-			  },
-			  "aggs": {
-			    "2": {
-			      "date_histogram": {
-			        "interval": "5s",
-			        "field": "timestamp",
-			        "min_doc_count": 0,
-			        "extended_bounds": {
-			          "min": "<FROM_TIMESTAMP>",
-			          "max": "<TO_TIMESTAMP>"
-			        },
-			        "format": "epoch_millis"
-			      },
-			      "aggs": {
-			        "1": {
-			          "avg": {
-			            "field": "value",
-				            "script": {
-				              "inline": "_value * 2"
-				            }
-			          }
-			        },
-			        "3": {
-			          "moving_avg": {
-			            "buckets_path": "1",
-			            "window": 5,
-			            "model": "simple",
-			            "minimize": false
-			          }
-			        }
-			      }
-			    }
-			  }
+				"size": 0,
+				"query": {
+					"filtered": {
+						"query": {
+							"query_string": {
+								"analyze_wildcard": true,
+								"query": "(test:query) AND (name:sample)"
+							}
+						},
+						"filter": {
+							"bool": {
+								"must": [
+									{
+										"range": {
+											"timestamp": {
+												"gte": "<FROM_TIMESTAMP>",
+												"lte": "<TO_TIMESTAMP>",
+												"format": "epoch_millis"
+											}
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				"aggs": {
+					"2": {
+						"date_histogram": {
+							"interval": "200ms",
+							"field": "timestamp",
+							"min_doc_count": 0,
+							"extended_bounds": {
+								"min": "<FROM_TIMESTAMP>",
+								"max": "<TO_TIMESTAMP>"
+							},
+							"format": "epoch_millis"
+						},
+						"aggs": {
+							"1": {
+								"avg": {
+									"field": "value",
+									"script": {
+										"inline": "_value * 2"
+									}
+								}
+							},
+							"3": {
+								"moving_avg": {
+									"buckets_path": "1",
+									"window": 5,
+									"model": "simple",
+									"minimize": false
+								}
+							}
+						}
+					}
+				}
 			}`
 
 			model := &RequestModel{}
@@ -169,17 +168,21 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 			testRequestModelJSON := `
 			{
 				"alias": "New",
-				"bucketAggs": [{
-					"field": "timestamp",
-					"id": "2",
-					"type": "date_histogram"
-				}],
+				"bucketAggs": [
+					{
+						"field": "timestamp",
+						"id": "2",
+						"type": "date_histogram"
+					}
+				],
 				"dsType": "elasticsearch",
-				"metrics": [{
-					"type": "sum",
-					"field": "value",
-					"id": "1"
-				}],
+				"metrics": [
+					{
+						"type": "sum",
+						"field": "value",
+						"id": "1"
+					}
+				],
 				"query": "scope:$location.leagueconnect.api AND name:*CreateRegistration AND name:\"*.201-responses.rate\"",
 				"refId": "A",
 				"timeField": "timestamp"
@@ -189,22 +192,28 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 			{
 				"size": 0,
 				"query": {
-					"bool": {
-						"filter": [{
-							"range": {
-								"timestamp": {
-									"gte": "<FROM_TIMESTAMP>",
-									"lte": "<TO_TIMESTAMP>",
-									"format": "epoch_millis"
-								}
-							}
-						},
-						{
+					"filtered": {
+						"query": {
 							"query_string": {
 								"analyze_wildcard": true,
 								"query": "scope:$location.leagueconnect.api AND name:*CreateRegistration AND name:\"*.201-responses.rate\""
 							}
-						}]
+						},
+						"filter": {
+							"bool": {
+								"must": [
+									{
+										"range": {
+											"timestamp": {
+												"gte": "<FROM_TIMESTAMP>",
+												"lte": "<TO_TIMESTAMP>",
+												"format": "epoch_millis"
+											}
+										}
+									}
+								]
+							}
+						}
 					}
 				},
 				"aggs": {
@@ -265,42 +274,6 @@ func TestElasticserachQueryBuilder(t *testing.T) {
 
 			result := reflect.DeepEqual(queryExpectedJSONInterface, queryJSONInterface)
 			So(result, ShouldBeTrue)
-		})
-
-		Convey("Test Term Aggregate Query", func() {
-			testQueryJSON := `{
-			"bucketAggs":[
-			{
-			"field":"name_raw","id":"4","settings":
-			{"order":"desc","orderBy":"_term","size":"10"},"type":"terms"},
-			{"field":"rfc460Timestamp","id":"2",
-			"settings":{"interval":"1m","min_doc_count":0,"trimEdges":0},"type":"date_histogram"}],
-			"dsType":"elasticsearch",
-			"filters":[{"boolOp":"AND","not":false,"type":"rfc190Scope","value":"*.hmp.metricsd"},
-			{"boolOp":"AND","not":false,"type":"name_raw","value":"builtin.general.*_instance_count"}],
-			"metricObject":{},"metrics":[{"field":"value","id":"1","meta":{},"options":{},"settings":{},"type":"sum"}],
-			"mode":0,"numToGraph":10,"prependHostName":false,
-			"query":"(rfc190Scope:*.hmp.metricsd) AND (name_raw:builtin.general.*_instance_count)",
-			"refId":"A","regexAlias":false,
-			"selectedApplication":"","selectedHost":"","selectedLocation":"",
-			"timeField":"rfc460Timestamp",useFullHostName":"","useQuery":false}`
-
-			//expectedResponseJSON = `{}``
-			model := &RequestModel{}
-
-			err := json.Unmarshal([]byte(testQueryJSON), model)
-			So(err, ShouldBeNil)
-
-			testTimeRange := &tsdb.TimeRange{
-				From: "5m",
-				To:   "now",
-				Now:  time.Now(),
-			}
-
-			queryJSON, err := model.buildQueryJSON(testTimeRange)
-			So(err, ShouldBeNil)
-
-			fmt.Println(queryJSON)
 		})
 	})
 }
