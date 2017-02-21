@@ -78,10 +78,6 @@ func (e *GMetricsdExecutor) Execute(ctx context.Context, queries tsdb.QuerySlice
 			return result.WithError(fmt.Errorf("Invalid (nil) DataSource Provided"))
 		}
 
-		if q.DataSource.JsonData == nil {
-			return result.WithError(fmt.Errorf("Invalid (nil) JsonData Provided"))
-		}
-
 		request, err := e.buildRequest(q, context.TimeRange)
 		if err != nil {
 			return result.WithError(err)
