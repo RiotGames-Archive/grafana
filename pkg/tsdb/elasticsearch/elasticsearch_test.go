@@ -7,6 +7,8 @@ import (
 	"github.com/grafana/grafana/pkg/tsdb"
 	. "github.com/smartystreets/goconvey/convey"
 	"time"
+	"fmt"
+	"strings"
 )
 
 func TestElasticGetPreferredNamesForQuery(t *testing.T) {
@@ -107,6 +109,27 @@ func TestElasticsearchGetIndexList(t *testing.T) {
 		Convey("No Interval", func() {
 			index := getIndex("logstash-test", "", timeRange)
 			So(index, ShouldEqual, "logstash-test")
+		})
+	})
+}
+
+
+func TestGetIndexesTruncatesOldIndexes(t *testing.T) {
+	Convey("Test that getIndex throws out old dates", t, func() {
+		timeRange := &tsdb.TimeRange{
+			From: fmt.Sprintf("%dh", MAX_ES_CLUSTER_LIMIT * 24 * 2), // 2x the hours in the max day cluster limit
+			To:   "now",
+			Now:  time.Now(),
+		}
+		Convey("Chop off old indexes", func() {
+			indexStr := getIndex("[logstash-]YYYY.MM.DD", "Daily", timeRange)
+			indexes := strings.Split(indexStr, ",")
+			So(len(indexes), ShouldBeLessThanOrEqualTo, MAX_ES_CLUSTER_LIMIT)
+
+			timeRange.From = "48h"
+			indexStr = getIndex("[logstash-]YYYY.MM.DD", "Daily", timeRange)
+			indexes = strings.Split(indexStr, ",")
+			So(len(indexes), ShouldBeLessThan, MAX_ES_CLUSTER_LIMIT)
 		})
 	})
 }

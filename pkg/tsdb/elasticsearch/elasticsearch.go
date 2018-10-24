@@ -16,6 +16,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/alerting/riot"
 	"github.com/grafana/grafana/pkg/tsdb"
 	"github.com/leibowitz/moment"
+	"math"
 )
 
 var (
@@ -25,6 +26,8 @@ var (
 type ElasticsearchExecutor struct {
 	*models.DataSource
 }
+
+const MAX_ES_CLUSTER_LIMIT = 8
 
 func NewElasticsearchExecutor(dsInfo *models.DataSource) (tsdb.TsdbQueryEndpoint, error) {
 	return &ElasticsearchExecutor{}, nil
@@ -93,7 +96,8 @@ func getIndex(pattern string, interval string, timeRange *tsdb.TimeRange) string
 		start = operations[interval].Operation(start)
 		indexes = append(indexes, fmt.Sprintf("%s%s", indexBase, start.UTC().Format(indexDateFormat)))
 	}
-	return strings.Join(indexes, ",")
+	limitedIndexes := indexes[int(math.Max(0, float64(len(indexes) - MAX_ES_CLUSTER_LIMIT))):]
+	return strings.Join(limitedIndexes, ",")
 }
 
 func (e *ElasticsearchExecutor) buildRequest(queryInfo *tsdb.Query, timeRange *tsdb.TimeRange) (*http.Request, error) {
