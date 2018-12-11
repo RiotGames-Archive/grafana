@@ -23,8 +23,24 @@ export class Analytics {
       var track = { page: this.$location.url() };
       var ga = (<any>window).ga || this.gaInit();
       ga('set', track);
+
+      const userEmail = this.getUserEmail()
+      if (userEmail) {
+        ga('set', 'userId', userEmail); // Set the user ID using signed-in user_id.
+      }
+
       ga('send', 'pageview');
     });
+  }
+
+  getUserEmail() {
+    var bootData = (<any>window).grafanaBootData || { settings: {} };
+    if (bootData.user)
+    {
+      return bootData.user.email
+    }
+
+    return null
   }
 }
 
