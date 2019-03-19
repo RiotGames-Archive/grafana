@@ -50,6 +50,24 @@
   }
 }
 
+.navbar-text {
+  color: darken($navbar-text-color, 5%);
+  font-size: 1.4em;
+  padding: 0rem 0rem 0rem 0rem;
+}
+
+.navbar-9box-btn {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  float: left;
+  display: block;
+  margin-top: 7px;
+  font-size: 1.4em;
+  font-size: $font-size-lg;
+  color: darken($navbar-text-color, 5%);
+}
+
 .navbar-page-btn {
   text-overflow: ellipsis;
   overflow: hidden;

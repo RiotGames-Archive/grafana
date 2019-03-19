@@ -28,6 +28,7 @@ import (
 	_ "github.com/grafana/grafana/pkg/tsdb/opentsdb"
 	_ "github.com/grafana/grafana/pkg/tsdb/postgres"
 	_ "github.com/grafana/grafana/pkg/tsdb/prometheus"
+	_ "github.com/grafana/grafana/pkg/tsdb/riot"
 	_ "github.com/grafana/grafana/pkg/tsdb/stackdriver"
 	_ "github.com/grafana/grafana/pkg/tsdb/testdata"
 )

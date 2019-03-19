@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/grafana/pkg/log"
 	m "github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/setting"
+	"strings"
 )
 
 type EvalContext struct {

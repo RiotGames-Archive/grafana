@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import angular from 'angular';
 import moment from 'moment';
+import { createRefreshIntervalOptions } from './utils';
 
 import * as rangeUtil from 'app/core/utils/rangeutil';
 
@@ -108,9 +109,7 @@ export class TimePickerCtrl {
     this.timeOptions = rangeUtil.getRelativeTimesList(this.panel, this.rangeString);
     this.refresh = {
       value: this.dashboard.refresh,
-      options: _.map(this.panel.refresh_intervals, (interval: any) => {
-        return { text: interval, value: interval };
-      }),
+      options: createRefreshIntervalOptions(this.panel.refresh_intervals),
     };
 
     this.refresh.options.unshift({ text: 'off' });

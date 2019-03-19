@@ -1,29 +1,22 @@
 import _ from 'lodash';
 import ResponseParser from './response_parser';
-import PostgresQuery from 'app/plugins/datasource/postgres/postgres_query';
 
 export class PostgresDatasource {
   id: any;
   name: any;
-  jsonData: any;
   responseParser: ResponseParser;
-  queryModel: PostgresQuery;
-  interval: string;
 
-  /** @ngInject */
-  constructor(instanceSettings, private backendSrv, private $q, private templateSrv, private timeSrv) {
+  /** @ngInject **/
+  constructor(instanceSettings, private backendSrv, private $q, private templateSrv) {
     this.name = instanceSettings.name;
     this.id = instanceSettings.id;
-    this.jsonData = instanceSettings.jsonData;
     this.responseParser = new ResponseParser(this.$q);
-    this.queryModel = new PostgresQuery({});
-    this.interval = (instanceSettings.jsonData || {}).timeInterval;
   }
 
-  interpolateVariable = (value, variable) => {
+  interpolateVariable(value, variable) {
     if (typeof value === 'string') {
       if (variable.multi || variable.includeAll) {
-        return this.queryModel.quoteLiteral(value);
+        return "'" + value + "'";
       } else {
         return value;
       }
@@ -33,25 +26,27 @@ export class PostgresDatasource {
       return value;
     }
 
-    const quotedValues = _.map(value, v => {
-      return this.queryModel.quoteLiteral(v);
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+
+    var quotedValues = _.map(value, function(val) {
+      return "'" + val + "'";
     });
     return quotedValues.join(',');
-  };
+  }
 
   query(options) {
-    const queries = _.filter(options.targets, target => {
-      return target.hide !== true;
-    }).map(target => {
-      const queryModel = new PostgresQuery(target, this.templateSrv, options.scopedVars);
-
+    var queries = _.filter(options.targets, item => {
+      return item.hide !== true;
+    }).map(item => {
       return {
-        refId: target.refId,
+        refId: item.refId,
         intervalMs: options.intervalMs,
         maxDataPoints: options.maxDataPoints,
         datasourceId: this.id,
-        rawSql: queryModel.render(this.interpolateVariable),
-        format: target.format,
+        rawSql: this.templateSrv.replace(item.rawSql, options.scopedVars, this.interpolateVariable),
+        format: item.format,
       };
     });
 
@@ -112,12 +107,16 @@ export class PostgresDatasource {
       format: 'table',
     };
 
-    const range = this.timeSrv.timeRange();
-    const data = {
+    var data = {
       queries: [interpolatedQuery],
-      from: range.from.valueOf().toString(),
-      to: range.to.valueOf().toString(),
     };
+
+    if (optionalOptions && optionalOptions.range && optionalOptions.range.from) {
+      data['from'] = optionalOptions.range.from.valueOf().toString();
+    }
+    if (optionalOptions && optionalOptions.range && optionalOptions.range.to) {
+      data['to'] = optionalOptions.range.to.valueOf().toString();
+    }
 
     return this.backendSrv
       .datasourceRequest({
@@ -128,16 +127,26 @@ export class PostgresDatasource {
       .then(data => this.responseParser.parseMetricFindQueryResult(refId, data));
   }
 
-  getVersion() {
-    return this.metricFindQuery("SELECT current_setting('server_version_num')::int/100", {});
-  }
-
-  getTimescaleDBVersion() {
-    return this.metricFindQuery("SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'", {});
-  }
-
   testDatasource() {
-    return this.metricFindQuery('SELECT 1', {})
+    return this.backendSrv
+      .datasourceRequest({
+        url: '/api/tsdb/query',
+        method: 'POST',
+        data: {
+          from: '5m',
+          to: 'now',
+          queries: [
+            {
+              refId: 'A',
+              intervalMs: 1,
+              maxDataPoints: 1,
+              datasourceId: this.id,
+              rawSql: 'SELECT 1',
+              format: 'table',
+            },
+          ],
+        },
+      })
       .then(res => {
         return { status: 'success', message: 'Database Connection OK' };
       })

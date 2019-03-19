@@ -37,6 +37,14 @@ type AlertQuery struct {
 	To           string
 }
 
+func (c *QueryCondition) From() string {
+	return c.Query.From
+}
+
+func (c *QueryCondition) To() string {
+	return c.Query.To
+}
+
 func (c *QueryCondition) Eval(context *alerting.EvalContext) (*alerting.ConditionResult, error) {
 	timeRange := tsdb.NewTimeRange(c.Query.From, c.Query.To)
 

@@ -172,9 +172,15 @@ export class AlertTabCtrl {
       alert.conditions.push(this.buildDefaultCondition());
     }
 
+<<<<<<< HEAD:public/app/features/alerting/AlertTabCtrl.ts
     alert.noDataState = alert.noDataState || config.alertingNoDataOrNullValues;
     alert.executionErrorState = alert.executionErrorState || config.alertingErrorOrTimeout;
     alert.frequency = alert.frequency || '1m';
+=======
+    alert.noDataState = alert.noDataState || 'keep_state';
+    alert.executionErrorState = alert.executionErrorState || 'keep_state';
+    alert.frequency = alert.frequency || '180s';
+>>>>>>> master:public/app/features/alerting/alert_tab_ctrl.ts
     alert.handler = alert.handler || 1;
     alert.notifications = alert.notifications || [];
     alert.for = alert.for || '0m';

@@ -16,7 +16,7 @@ func TestTimeRange(t *testing.T) {
 			tr := TimeRange{
 				From: "5m",
 				To:   "now",
-				now:  now,
+				Now:  now,
 			}
 
 			Convey("5m ago ", func() {
@@ -39,7 +39,7 @@ func TestTimeRange(t *testing.T) {
 			tr := TimeRange{
 				From: "5h",
 				To:   "now-10m",
-				now:  now,
+				Now:  now,
 			}
 
 			Convey("5h ago ", func() {
@@ -65,7 +65,7 @@ func TestTimeRange(t *testing.T) {
 			tr := TimeRange{
 				From: "1474973725473",
 				To:   "1474975757930",
-				now:  now,
+				Now:  now,
 			}
 
 			res, err := tr.ParseFrom()
@@ -82,7 +82,7 @@ func TestTimeRange(t *testing.T) {
 			tr := TimeRange{
 				From: "asdf",
 				To:   "asdf",
-				now:  now,
+				Now:  now,
 			}
 
 			_, err = tr.ParseFrom()

@@ -18,6 +18,14 @@ func (c *conditionStub) Eval(context *EvalContext) (*ConditionResult, error) {
 	return &ConditionResult{Firing: c.firing, EvalMatches: c.matches, Operator: c.operator, NoDataFound: c.noData}, nil
 }
 
+func (c *conditionStub) From() string {
+	return "5m"
+}
+
+func (c *conditionStub) To() string {
+	return "now-5m"
+}
+
 func TestAlertingEvaluationHandler(t *testing.T) {
 	Convey("Test alert evaluation handler", t, func() {
 		handler := NewEvalHandler()

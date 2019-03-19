@@ -1,17 +1,16 @@
 import React, { Component } from 'react';
 
-export interface Props {
+export interface IProps {
   model: any;
 }
 
-class EmptyListCTA extends Component<Props, any> {
+class EmptyListCTA extends Component<IProps, any> {
   render() {
     const {
       title,
       buttonIcon,
       buttonLink,
       buttonTitle,
-      onClick,
       proTip,
       proTipLink,
       proTipLinkTitle,
@@ -20,18 +19,16 @@ class EmptyListCTA extends Component<Props, any> {
     return (
       <div className="empty-list-cta">
         <div className="empty-list-cta__title">{title}</div>
-        <a onClick={onClick} href={buttonLink} className="empty-list-cta__button btn btn-xlarge btn-primary">
+        <a href={buttonLink} className="empty-list-cta__button btn btn-xlarge btn-success">
           <i className={buttonIcon} />
           {buttonTitle}
         </a>
-        {proTip && (
-          <div className="empty-list-cta__pro-tip">
-            <i className="fa fa-rocket" /> ProTip: {proTip}
-            <a className="text-link empty-list-cta__pro-tip-link" href={proTipLink} target={proTipTarget}>
-              {proTipLinkTitle}
-            </a>
-          </div>
-        )}
+        <div className="empty-list-cta__pro-tip">
+          <i className="fa fa-rocket" /> ProTip: {proTip}
+          <a className="text-link empty-list-cta__pro-tip-link" href={proTipLink} target={proTipTarget}>
+            {proTipLinkTitle}
+          </a>
+        </div>
       </div>
     );
   }

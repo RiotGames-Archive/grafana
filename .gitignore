@@ -31,6 +31,7 @@ public/css/*.min.css
 *.swp
 .idea/
 *.iml
+*.orig
 *.tmp
 .DS_Store
 .vscode/
