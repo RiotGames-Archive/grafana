@@ -1,26 +1,25 @@
 import angular from 'angular';
 import _ from 'lodash';
 import $ from 'jquery';
-import PerfectScrollbar from 'perfect-scrollbar';
+import baron from 'baron';
 
-var module = angular.module('grafana.directives');
+const module = angular.module('grafana.directives');
 
-module.directive('graphLegend', function(popoverSrv, $timeout) {
+module.directive('graphLegend', (popoverSrv, $timeout) => {
   return {
-    link: function(scope, elem) {
-      var firstRender = true;
-      var ctrl = scope.ctrl;
-      var panel = ctrl.panel;
-      var data;
-      var seriesList;
-      var i;
-      var legendScrollbar;
+    link: (scope, elem) => {
+      let firstRender = true;
+      const ctrl = scope.ctrl;
+      const panel = ctrl.panel;
+      let data;
+      let seriesList;
+      let i;
+      let legendScrollbar;
       const legendRightDefaultWidth = 10;
+      const legendElem = elem.parent();
 
-      scope.$on('$destroy', function() {
-        if (legendScrollbar) {
-          legendScrollbar.destroy();
-        }
+      scope.$on('$destroy', () => {
+        destroyScrollbar();
       });
 
       ctrl.events.on('render-legend', () => {
@@ -41,11 +40,11 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
           return;
         }
 
-        var el = $(e.currentTarget).find('.fa-minus');
-        var index = getSeriesIndexForElement(el);
-        var series = seriesList[index];
+        const el = $(e.currentTarget).find('.fa-minus');
+        const index = getSeriesIndexForElement(el);
+        const series = seriesList[index];
 
-        $timeout(function() {
+        $timeout(() => {
           popoverSrv.show({
             element: el[0],
             position: 'bottom left',
@@ -56,10 +55,10 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
             openOn: 'hover',
             model: {
               series: series,
-              toggleAxis: function() {
+              toggleAxis: () => {
                 ctrl.toggleAxis(series);
               },
-              colorSelected: function(color) {
+              colorSelected: color => {
                 ctrl.changeSeriesColor(series, color);
               },
             },
@@ -68,17 +67,17 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
       }
 
       function toggleSeries(e) {
-        var el = $(e.currentTarget);
-        var index = getSeriesIndexForElement(el);
-        var seriesInfo = seriesList[index];
-        var scrollPosition = $(elem.children('tbody')).scrollTop();
+        const el = $(e.currentTarget);
+        const index = getSeriesIndexForElement(el);
+        const seriesInfo = seriesList[index];
+        const scrollPosition = legendScrollbar.scroller.scrollTop;
         ctrl.toggleSeries(seriesInfo, e);
-        $(elem.children('tbody')).scrollTop(scrollPosition);
+        legendScrollbar.scroller.scrollTop = scrollPosition;
       }
 
       function sortLegend(e) {
-        var el = $(e.currentTarget);
-        var stat = el.data('stat');
+        const el = $(e.currentTarget);
+        const stat = el.data('stat');
 
         if (stat !== panel.legend.sort) {
           panel.legend.sortDesc = null;
@@ -101,10 +100,10 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
         if (!panel.legend[statName]) {
           return '';
         }
-        var html = '<th class="pointer" data-stat="' + statName + '">' + statName;
+        let html = '<th class="pointer" data-stat="' + statName + '">' + statName;
 
         if (panel.legend.sort === statName) {
-          var cssClass = panel.legend.sortDesc ? 'fa fa-caret-down' : 'fa fa-caret-up';
+          const cssClass = panel.legend.sortDesc ? 'fa fa-caret-down' : 'fa fa-caret-up';
           html += ' <span class="' + cssClass + '"></span>';
         }
 
@@ -112,7 +111,7 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
       }
 
       function render() {
-        let legendWidth = elem.width();
+        const legendWidth = legendElem.width();
         if (!ctrl.panel.legend.show) {
           elem.empty();
           firstRender = true;
@@ -130,15 +129,18 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
 
         elem.empty();
 
-        // Set min-width if side style and there is a value, otherwise remove the CSS propery
-        var width = panel.legend.rightSide && panel.legend.sideWidth ? panel.legend.sideWidth + 'px' : '';
-        elem.css('min-width', width);
+        // Set min-width if side style and there is a value, otherwise remove the CSS property
+        // Set width so it works with IE11
+        const width: any = panel.legend.rightSide && panel.legend.sideWidth ? panel.legend.sideWidth + 'px' : '';
+        const ieWidth: any = panel.legend.rightSide && panel.legend.sideWidth ? panel.legend.sideWidth - 1 + 'px' : '';
+        legendElem.css('min-width', width);
+        legendElem.css('width', ieWidth);
 
         elem.toggleClass('graph-legend-table', panel.legend.alignAsTable === true);
 
-        var tableHeaderElem;
+        let tableHeaderElem;
         if (panel.legend.alignAsTable) {
-          var header = '<tr>';
+          let header = '<tr>';
           header += '<th colspan="2" style="text-align:left"></th>';
           if (panel.legend.values) {
             header += getTableHeaderHtml('min');
@@ -152,7 +154,7 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
         }
 
         if (panel.legend.sort) {
-          seriesList = _.sortBy(seriesList, function(series) {
+          seriesList = _.sortBy(seriesList, series => {
             let sort = series.stats[panel.legend.sort];
             if (sort === null) {
               sort = -Infinity;
@@ -174,15 +176,15 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
       }
 
       function renderSeriesLegendElements() {
-        let seriesElements = [];
+        const seriesElements = [];
         for (i = 0; i < seriesList.length; i++) {
-          var series = seriesList[i];
+          const series = seriesList[i];
 
           if (series.hideFromLegend(panel.legend)) {
             continue;
           }
 
-          var html = '<div class="graph-legend-series';
+          let html = '<div class="graph-legend-series';
 
           if (series.yaxis === 2) {
             html += ' graph-legend-series--right-y';
@@ -199,11 +201,11 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
             '<a class="graph-legend-alias pointer" title="' + series.aliasEscaped + '">' + series.aliasEscaped + '</a>';
 
           if (panel.legend.values) {
-            var avg = series.formatValue(series.stats.avg);
-            var current = series.formatValue(series.stats.current);
-            var min = series.formatValue(series.stats.min);
-            var max = series.formatValue(series.stats.max);
-            var total = series.formatValue(series.stats.total);
+            const avg = series.formatValue(series.stats.avg);
+            const current = series.formatValue(series.stats.current);
+            const min = series.formatValue(series.stats.min);
+            const max = series.formatValue(series.stats.max);
+            const total = series.formatValue(series.stats.total);
 
             if (panel.legend.min) {
               html += '<div class="graph-legend-value min">' + min + '</div>';
@@ -229,17 +231,19 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
       }
 
       function renderLegendElement(tableHeaderElem) {
-        let legendWidth = elem.width();
+        const legendWidth = elem.width();
 
-        var seriesElements = renderSeriesLegendElements();
+        const seriesElements = renderSeriesLegendElements();
 
         if (panel.legend.alignAsTable) {
-          var tbodyElem = $('<tbody></tbody>');
+          const tbodyElem = $('<tbody></tbody>');
           tbodyElem.append(tableHeaderElem);
           tbodyElem.append(seriesElements);
           elem.append(tbodyElem);
+          tbodyElem.wrap('<div class="graph-legend-scroll"></div>');
         } else {
-          elem.append(seriesElements);
+          elem.append('<div class="graph-legend-scroll"></div>');
+          elem.find('.graph-legend-scroll').append(seriesElements);
         }
 
         if (!panel.legend.rightSide || (panel.legend.rightSide && legendWidth !== legendRightDefaultWidth)) {
@@ -250,23 +254,49 @@ module.directive('graphLegend', function(popoverSrv, $timeout) {
       }
 
       function addScrollbar() {
-        const scrollbarOptions = {
-          // Number of pixels the content height can surpass the container height without enabling the scroll bar.
-          scrollYMarginOffset: 2,
-          suppressScrollX: true,
-          wheelPropagation: true,
+        const scrollRootClass = 'baron baron__root';
+        const scrollerClass = 'baron__scroller';
+        const scrollBarHTML = `
+          <div class="baron__track">
+            <div class="baron__bar"></div>
+          </div>
+        `;
+
+        const scrollRoot = elem;
+        const scroller = elem.find('.graph-legend-scroll');
+
+        // clear existing scroll bar track to prevent duplication
+        scrollRoot.find('.baron__track').remove();
+
+        scrollRoot.addClass(scrollRootClass);
+        $(scrollBarHTML).appendTo(scrollRoot);
+        scroller.addClass(scrollerClass);
+
+        const scrollbarParams = {
+          root: scrollRoot[0],
+          scroller: scroller[0],
+          bar: '.baron__bar',
+          track: '.baron__track',
+          barOnCls: '_scrollbar',
+          scrollingCls: '_scrolling',
         };
 
         if (!legendScrollbar) {
-          legendScrollbar = new PerfectScrollbar(elem[0], scrollbarOptions);
+          legendScrollbar = baron(scrollbarParams);
         } else {
-          legendScrollbar.update();
+          destroyScrollbar();
+          legendScrollbar = baron(scrollbarParams);
         }
+
+        // #11830 - compensates for Firefox scrollbar calculation error in the baron framework
+        scroller[0].style.marginRight = '-' + (scroller[0].offsetWidth - scroller[0].clientWidth) + 'px';
+
+        legendScrollbar.scroll();
       }
 
       function destroyScrollbar() {
         if (legendScrollbar) {
-          legendScrollbar.destroy();
+          legendScrollbar.dispose();
           legendScrollbar = undefined;
         }
       }

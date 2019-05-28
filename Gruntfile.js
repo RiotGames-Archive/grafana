@@ -1,4 +1,3 @@
-/* jshint node:true */
 'use strict';
 module.exports = function (grunt) {
   var os = require('os');
@@ -12,6 +11,10 @@ module.exports = function (grunt) {
     platform: process.platform.replace('win32', 'windows'),
   };
 
+  if (grunt.option('platform')) {
+    config.platform = grunt.option('platform');
+  }
+
   if (grunt.option('arch')) {
     config.arch = grunt.option('arch');
   } else {
@@ -22,7 +25,6 @@ module.exports = function (grunt) {
     }
   }
 
-  config.coverage = grunt.option('coverage');
   config.phjs = grunt.option('phjsToRelease');
   config.pkg.version = grunt.option('pkgVer') || config.pkg.version;
 

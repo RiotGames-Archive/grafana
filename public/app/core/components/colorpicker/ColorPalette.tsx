@@ -1,12 +1,12 @@
 import React from 'react';
 import { sortedColors } from 'app/core/utils/colors';
 
-export interface IProps {
+export interface Props {
   color: string;
   onColorSelect: (c: string) => void;
 }
 
-export class ColorPalette extends React.Component<IProps, any> {
+export class ColorPalette extends React.Component<Props, any> {
   paletteColors: string[];
 
   constructor(props) {

@@ -3,13 +3,13 @@ import _ from 'lodash';
 import $ from 'jquery';
 import 'vendor/spectrum';
 
-export interface IProps {
+export interface Props {
   color: string;
   options: object;
   onColorSelect: (c: string) => void;
 }
 
-export class SpectrumPicker extends React.Component<IProps, any> {
+export class SpectrumPicker extends React.Component<Props, any> {
   elem: any;
   isMoving: boolean;
 
@@ -29,7 +29,7 @@ export class SpectrumPicker extends React.Component<IProps, any> {
   }
 
   componentDidMount() {
-    let spectrumOptions = _.assignIn(
+    const spectrumOptions = _.assignIn(
       {
         flat: true,
         showAlpha: true,

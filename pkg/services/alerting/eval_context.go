@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"github.com/grafana/grafana/pkg/bus"
 	"github.com/grafana/grafana/pkg/log"
 	m "github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/setting"
-	"strings"
 )
 
 type EvalContext struct {
@@ -107,12 +108,12 @@ func (c *EvalContext) GetRuleUrl() (string, error) {
 		return setting.AppUrl, nil
 	}
 
-	if ref, err := c.GetDashboardUID(); err != nil {
+	ref, err := c.GetDashboardUID()
+	if err != nil {
 		return "", err
-	} else {
-		from, to := c.GetFromToAsMilliseconds()
-		return fmt.Sprintf(urlFormat, m.GetFullDashboardUrl(ref.Uid, ref.Slug), c.Rule.PanelId, c.Rule.OrgId, from, to), nil
 	}
+	from, to := c.GetFromToAsMilliseconds()
+	return fmt.Sprintf(urlFormat, m.GetFullDashboardUrl(ref.Uid, ref.Slug), c.Rule.PanelId, c.Rule.OrgId, from, to), nil
 }
 
 const gapDuration = time.Minute * 30

@@ -10,7 +10,7 @@ parent = "whatsnew"
 weight = -1
 +++
 
-## Whats new in Grafana v4.2
+## What's new in Grafana v4.2
 
 Grafana v4.2 Beta is now [available for download](https://grafana.com/grafana/download/4.2.0).
 Just like the last release this one contains lots bug fixes and minor improvements.
@@ -67,7 +67,7 @@ Making it possible to have users in multiple groups and have detailed access con
 
 ## Upgrade & Breaking changes
 
-If your using https in grafana we now force you to use tls 1.2 and the most secure ciphers.
+If you're using https in grafana we now force you to use tls 1.2 and the most secure ciphers.
 We think its better to be secure by default rather then making it configurable.
 If you want to run https with lower versions of tls we suggest you put a reserve proxy in front of grafana.
 

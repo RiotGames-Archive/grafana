@@ -105,7 +105,10 @@
 .playlist-available-list {
   td {
     line-height: 2rem;
+    max-width: 335px;
     white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   .add-dashboard {
