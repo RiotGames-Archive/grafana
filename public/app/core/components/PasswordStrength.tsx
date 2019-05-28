@@ -1,11 +1,11 @@
 import React from 'react';
 import { react2AngularDirective } from 'app/core/utils/react2angular';
 
-export interface IProps {
+export interface Props {
   password: string;
 }
 
-export class PasswordStrength extends React.Component<IProps, any> {
+export class PasswordStrength extends React.Component<Props, any> {
   constructor(props) {
     super(props);
   }
@@ -36,5 +36,3 @@ export class PasswordStrength extends React.Component<IProps, any> {
     );
   }
 }
-
-react2AngularDirective('passwordStrength', PasswordStrength, ['password']);

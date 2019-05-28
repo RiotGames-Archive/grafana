@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 
-export interface IProps {
+export interface Props {
   model: any;
 }
 
-class EmptyListCTA extends Component<IProps, any> {
+class EmptyListCTA extends Component<Props, any> {
   render() {
     const {
       title,

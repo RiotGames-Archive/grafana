@@ -154,7 +154,8 @@ gf-form-switch[disabled] {
   .gf-form-switch input + label {
     cursor: default;
     pointer-events: none !important;
-    &::before {
+    &::before,
+    &::after {
       color: $text-color-faint;
       text-shadow: none;
     }

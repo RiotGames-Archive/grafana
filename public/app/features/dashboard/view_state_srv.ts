@@ -16,29 +16,29 @@ export class DashboardViewState {
 
   /** @ngInject */
   constructor($scope, private $location, private $timeout, private $rootScope) {
-    var self = this;
+    const self = this;
     self.state = {};
     self.panelScopes = [];
     self.$scope = $scope;
     self.dashboard = $scope.dashboard;
 
-    $scope.onAppEvent('$routeUpdate', function() {
-      var urlState = self.getQueryStringState();
+    $scope.onAppEvent('$routeUpdate', () => {
+      const urlState = self.getQueryStringState();
       if (self.needsSync(urlState)) {
         self.update(urlState, true);
       }
     });
 
-    $scope.onAppEvent('panel-change-view', function(evt, payload) {
+    $scope.onAppEvent('panel-change-view', (evt, payload) => {
       self.update(payload);
     });
 
-    $scope.onAppEvent('panel-initialized', function(evt, payload) {
+    $scope.onAppEvent('panel-initialized', (evt, payload) => {
       self.registerPanel(payload.scope);
     });
 
     // this marks changes to location during this digest cycle as not to add history item
-    // dont want url changes like adding orgId to add browser history
+    // don't want url changes like adding orgId to add browser history
     $location.replace();
     this.update(this.getQueryStringState());
   }
@@ -48,8 +48,8 @@ export class DashboardViewState {
   }
 
   getQueryStringState() {
-    var state = this.$location.search();
-    state.panelId = parseInt(state.panelId) || null;
+    const state = this.$location.search();
+    state.panelId = parseInt(state.panelId, 10) || null;
     state.fullscreen = state.fullscreen ? true : null;
     state.edit = state.edit === 'true' || state.edit === true || null;
     state.editview = state.editview || null;
@@ -58,7 +58,7 @@ export class DashboardViewState {
   }
 
   serializeToUrl() {
-    var urlState = _.clone(this.state);
+    const urlState = _.clone(this.state);
     urlState.fullscreen = this.state.fullscreen ? true : null;
     urlState.edit = this.state.edit ? true : null;
     return urlState;
@@ -111,9 +111,9 @@ export class DashboardViewState {
   }
 
   toggleCollapsedPanelRow(panelId) {
-    for (let panel of this.dashboard.panels) {
+    for (const panel of this.dashboard.panels) {
       if (panel.collapsed) {
-        for (let rowPanel of panel.panels) {
+        for (const rowPanel of panel.panels) {
           if (rowPanel.id === panelId) {
             this.dashboard.toggleRow(panel);
             return;
@@ -129,7 +129,7 @@ export class DashboardViewState {
     }
 
     if (this.dashboard.meta.fullscreen) {
-      var panelScope = this.getPanelScope(this.state.panelId);
+      const panelScope = this.getPanelScope(this.state.panelId);
       if (!panelScope) {
         return;
       }
@@ -156,14 +156,14 @@ export class DashboardViewState {
   }
 
   getPanelScope(id) {
-    return _.find(this.panelScopes, function(panelScope) {
+    return _.find(this.panelScopes, panelScope => {
       return panelScope.ctrl.panel.id === id;
     });
   }
 
   leaveFullscreen(render) {
-    var self = this;
-    var ctrl = self.fullscreenPanel.ctrl;
+    const self = this;
+    const ctrl = self.fullscreenPanel.ctrl;
 
     ctrl.editMode = false;
     ctrl.fullscreen = false;
@@ -176,7 +176,7 @@ export class DashboardViewState {
       return false;
     }
 
-    this.$timeout(function() {
+    this.$timeout(() => {
       if (self.oldTimeRange !== ctrl.range) {
         self.$rootScope.$broadcast('refresh');
       } else {
@@ -188,7 +188,7 @@ export class DashboardViewState {
   }
 
   enterFullscreen(panelScope) {
-    var ctrl = panelScope.ctrl;
+    const ctrl = panelScope.ctrl;
 
     ctrl.editMode = this.state.edit && this.dashboard.meta.canEdit;
     ctrl.fullscreen = true;
@@ -196,13 +196,14 @@ export class DashboardViewState {
     this.oldTimeRange = ctrl.range;
     this.fullscreenPanel = panelScope;
 
+    // Firefox doesn't return scrollTop position properly if 'dash-scroll' is emitted after setViewMode()
+    this.$scope.appEvent('dash-scroll', { animate: false, pos: 0 });
     this.dashboard.setViewMode(ctrl.panel, true, ctrl.editMode);
     this.$scope.appEvent('panel-fullscreen-enter', { panelId: ctrl.panel.id });
-    this.$scope.appEvent('dash-scroll', { animate: false, pos: 0 });
   }
 
   registerPanel(panelScope) {
-    var self = this;
+    const self = this;
     self.panelScopes.push(panelScope);
 
     if (!self.dashboard.meta.soloMode) {
@@ -215,7 +216,7 @@ export class DashboardViewState {
       }
     }
 
-    var unbind = panelScope.$on('$destroy', function() {
+    const unbind = panelScope.$on('$destroy', () => {
       self.panelScopes = _.without(self.panelScopes, panelScope);
       unbind();
     });
@@ -225,7 +226,7 @@ export class DashboardViewState {
 /** @ngInject */
 export function dashboardViewStateSrv($location, $timeout, $rootScope) {
   return {
-    create: function($scope) {
+    create: $scope => {
       return new DashboardViewState($scope, $location, $timeout, $rootScope);
     },
   };
