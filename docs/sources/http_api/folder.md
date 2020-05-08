@@ -2,7 +2,7 @@
 title = "Folder HTTP API "
 description = "Grafana Folder HTTP API"
 keywords = ["grafana", "http", "documentation", "api", "folder"]
-aliases = ["/http_api/folder/"]
+aliases = ["/docs/grafana/latest/http_api/folder/"]
 type = "docs"
 [menu.docs]
 name = "Folder"
@@ -15,10 +15,14 @@ parent = "http_api"
 
 The identifier (id) of a folder is an auto-incrementing numeric value and is only unique per Grafana install.
 
-The unique identifier (uid) of a folder can be used for uniquely identify folders between multiple Grafana installs. It's automatically generated if not provided when creating a folder. The uid allows having consistent URL's for accessing folders and when syncing folders between multiple Grafana installs. This means that changing the title of a folder will not break any bookmarked links to that folder.
+The unique identifier (uid) of a folder can be used for uniquely identify folders between multiple Grafana installs. It's automatically generated if not provided when creating a folder. The uid allows having consistent URLs for accessing folders and when syncing folders between multiple Grafana installs. This means that changing the title of a folder will not break any bookmarked links to that folder.
 
 The uid can have a maximum length of 40 characters.
 
+## A note about the General folder
+
+The General folder (id=0) is special and is not part of the Folder API which means
+that you cannot use this API for retrieving information about the General folder.
 
 ## Get all folders
 
@@ -45,7 +49,7 @@ Content-Type: application/json
   {
     "id":1,
     "uid": "nErXDvCkzz",
-    "title": "Departmenet ABC",
+    "title": "Department ABC",
     "url": "/dashboards/f/nErXDvCkzz/department-abc",
     "hasAcl": false,
     "canSave": true,
@@ -84,7 +88,7 @@ Content-Type: application/json
 {
   "id":1,
   "uid": "nErXDvCkzz",
-  "title": "Departmenet ABC",
+  "title": "Department ABC",
   "url": "/dashboards/f/nErXDvCkzz/department-abc",
   "hasAcl": false,
   "canSave": true,
@@ -139,7 +143,7 @@ Content-Type: application/json
 {
   "id":1,
   "uid": "nErXDvCkzz",
-  "title": "Departmenet ABC",
+  "title": "Department ABC",
   "url": "/dashboards/f/nErXDvCkzz/department-abc",
   "hasAcl": false,
   "canSave": true,
@@ -196,7 +200,7 @@ Content-Type: application/json
 {
   "id":1,
   "uid": "nErXDvCkzz",
-  "title": "Departmenet DEF",
+  "title": "Department DEF",
   "url": "/dashboards/f/nErXDvCkzz/department-def",
   "hasAcl": false,
   "canSave": true,
@@ -219,7 +223,7 @@ Status Codes:
 - **404** – Folder not found
 - **412** – Precondition failed
 
-The **412** status code is used for explaing that you cannot update the folder and why.
+The **412** status code is used for explaining that you cannot update the folder and why.
 There can be different reasons for this:
 
 - The folder has been changed by someone else, `status=version-mismatch`
@@ -273,14 +277,14 @@ Status Codes:
 
 ## Get folder by id
 
-`GET /api/folders/:id`
+`GET /api/folders/id/:id`
 
 Will return the folder identified by id.
 
 **Example Request**:
 
 ```http
-GET /api/folders/1 HTTP/1.1
+GET /api/folders/id/1 HTTP/1.1
 Accept: application/json
 Content-Type: application/json
 Authorization: Bearer eyJrIjoiT0tTcG1pUlY2RnVKZTFVaDFsNFZXdE9ZWmNrMkZYbk
@@ -295,7 +299,7 @@ Content-Type: application/json
 {
   "id":1,
   "uid": "nErXDvCkzz",
-  "title": "Departmenet ABC",
+  "title": "Department ABC",
   "url": "/dashboards/f/nErXDvCkzz/department-abc",
   "hasAcl": false,
   "canSave": true,

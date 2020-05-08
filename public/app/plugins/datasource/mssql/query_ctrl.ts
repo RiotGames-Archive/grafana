@@ -1,5 +1,7 @@
 import _ from 'lodash';
 import { QueryCtrl } from 'app/plugins/sdk';
+import { auto } from 'angular';
+import { PanelEvents } from '@grafana/data';
 
 export interface MssqlQuery {
   refId: string;
@@ -33,13 +35,16 @@ export class MssqlQueryCtrl extends QueryCtrl {
   lastQueryError: string;
   showHelp: boolean;
 
-  /** @ngInject **/
-  constructor($scope, $injector) {
+  /** @ngInject */
+  constructor($scope: any, $injector: auto.IInjectorService) {
     super($scope, $injector);
 
     this.target.format = this.target.format || 'time_series';
     this.target.alias = '';
-    this.formats = [{ text: 'Time series', value: 'time_series' }, { text: 'Table', value: 'table' }];
+    this.formats = [
+      { text: 'Time series', value: 'time_series' },
+      { text: 'Table', value: 'table' },
+    ];
 
     if (!this.target.rawSql) {
       // special handling when in table panel
@@ -51,23 +56,23 @@ export class MssqlQueryCtrl extends QueryCtrl {
       }
     }
 
-    this.panelCtrl.events.on('data-received', this.onDataReceived.bind(this), $scope);
-    this.panelCtrl.events.on('data-error', this.onDataError.bind(this), $scope);
+    this.panelCtrl.events.on(PanelEvents.dataReceived, this.onDataReceived.bind(this), $scope);
+    this.panelCtrl.events.on(PanelEvents.dataError, this.onDataError.bind(this), $scope);
   }
 
-  onDataReceived(dataList) {
+  onDataReceived(dataList: any) {
     this.lastQueryMeta = null;
     this.lastQueryError = null;
 
-    let anySeriesFromQuery = _.find(dataList, { refId: this.target.refId });
+    const anySeriesFromQuery: any = _.find(dataList, { refId: this.target.refId });
     if (anySeriesFromQuery) {
       this.lastQueryMeta = anySeriesFromQuery.meta;
     }
   }
 
-  onDataError(err) {
+  onDataError(err: any) {
     if (err.data && err.data.results) {
-      let queryRes = err.data.results[this.target.refId];
+      const queryRes = err.data.results[this.target.refId];
       if (queryRes) {
         this.lastQueryMeta = queryRes.meta;
         this.lastQueryError = queryRes.error;

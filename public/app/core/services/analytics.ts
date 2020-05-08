@@ -1,51 +1,43 @@
 import $ from 'jquery';
 import coreModule from 'app/core/core_module';
 import config from 'app/core/config';
+import { GrafanaRootScope } from 'app/routes/GrafanaCtrl';
 
 export class Analytics {
   /** @ngInject */
-  constructor(private $rootScope, private $location) {}
+  constructor(private $rootScope: GrafanaRootScope, private $location: any) {}
 
   gaInit() {
-    $.getScript('https://www.google-analytics.com/analytics.js'); // jQuery shortcut
-    var ga = ((<any>window).ga =
-      (<any>window).ga ||
+    $.ajax({
+      url: 'https://www.google-analytics.com/analytics.js',
+      dataType: 'script',
+      cache: true,
+    });
+    const ga = ((window as any).ga =
+      (window as any).ga ||
+      // this had the equivalent of `eslint-disable-next-line prefer-arrow/prefer-arrow-functions`
       function() {
         (ga.q = ga.q || []).push(arguments);
       });
     ga.l = +new Date();
-    ga('create', (<any>config).googleAnalyticsId, 'auto');
+    ga('create', (config as any).googleAnalyticsId, 'auto');
+    ga('set', 'anonymizeIp', true);
     return ga;
   }
 
   init() {
     this.$rootScope.$on('$viewContentLoaded', () => {
-      var track = { page: this.$location.url() };
-      var ga = (<any>window).ga || this.gaInit();
+      const track = { page: this.$location.url() };
+      const ga = (window as any).ga || this.gaInit();
       ga('set', track);
-
-      const userEmail = this.getUserEmail();
-      if (userEmail) {
-        ga('set', 'userId', userEmail); // Set the user ID using signed-in user_id.
-      }
-
       ga('send', 'pageview');
     });
-  }
-
-  getUserEmail() {
-    var bootData = (<any>window).grafanaBootData || { settings: {} };
-    if (bootData.user) {
-      return bootData.user.email;
-    }
-
-    return null;
   }
 }
 
 /** @ngInject */
-function startAnalytics(googleAnalyticsSrv) {
-  if ((<any>config).googleAnalyticsId) {
+function startAnalytics(googleAnalyticsSrv: Analytics) {
+  if ((config as any).googleAnalyticsId) {
     googleAnalyticsSrv.init();
   }
 }

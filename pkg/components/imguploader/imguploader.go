@@ -3,11 +3,13 @@ package imguploader
 import (
 	"context"
 	"fmt"
-	"github.com/grafana/grafana/pkg/log"
 	"regexp"
 
+	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/setting"
 )
+
+const pngExt = ".png"
 
 type ImageUploader interface {
 	Upload(ctx context.Context, path string) (string, error)
@@ -20,15 +22,21 @@ func (NopImageUploader) Upload(ctx context.Context, path string) (string, error)
 	return "", nil
 }
 
+var (
+	logger = log.New("imguploader")
+)
+
 func NewImageUploader() (ImageUploader, error) {
 
 	switch setting.ImageUploadProvider {
 	case "s3":
-		s3sec, err := setting.Cfg.GetSection("external_image_storage.s3")
+		s3sec, err := setting.Raw.GetSection("external_image_storage.s3")
 		if err != nil {
 			return nil, err
 		}
 
+		endpoint := s3sec.Key("endpoint").MustString("")
+		pathStyleAccess := s3sec.Key("path_style_access").MustBool(false)
 		bucket := s3sec.Key("bucket").MustString("")
 		region := s3sec.Key("region").MustString("")
 		path := s3sec.Key("path").MustString("")
@@ -49,9 +57,9 @@ func NewImageUploader() (ImageUploader, error) {
 			region = info.region
 		}
 
-		return NewS3Uploader(region, bucket, path, "public-read", accessKey, secretKey), nil
+		return NewS3Uploader(endpoint, region, bucket, path, "public-read", accessKey, secretKey, pathStyleAccess), nil
 	case "webdav":
-		webdavSec, err := setting.Cfg.GetSection("external_image_storage.webdav")
+		webdavSec, err := setting.Raw.GetSection("external_image_storage.webdav")
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +75,7 @@ func NewImageUploader() (ImageUploader, error) {
 
 		return NewWebdavImageUploader(url, username, password, public_url)
 	case "gcs":
-		gcssec, err := setting.Cfg.GetSection("external_image_storage.gcs")
+		gcssec, err := setting.Raw.GetSection("external_image_storage.gcs")
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +86,7 @@ func NewImageUploader() (ImageUploader, error) {
 
 		return NewGCSUploader(keyFile, bucketName, path), nil
 	case "azure_blob":
-		azureBlobSec, err := setting.Cfg.GetSection("external_image_storage.azure_blob")
+		azureBlobSec, err := setting.Raw.GetSection("external_image_storage.azure_blob")
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +101,7 @@ func NewImageUploader() (ImageUploader, error) {
 	}
 
 	if setting.ImageUploadProvider != "" {
-		log.Error2("The external image storage configuration is invalid", "unsupported provider", setting.ImageUploadProvider)
+		logger.Error("The external image storage configuration is invalid", "unsupported provider", setting.ImageUploadProvider)
 	}
 
 	return NopImageUploader{}, nil
