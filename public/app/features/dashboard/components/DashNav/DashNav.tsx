@@ -279,14 +279,12 @@ export class DashNav extends PureComponent<Props> {
         )}
 
         <div>
-          /* eslint-disable */
           <x-sauron
             className="navbar-9box"
             icon-color="#b3b3b3"
             badge-color="red"
             sauron-host="https://sauron.rcluster.io"
           />
-          /* eslint-enable */
         </div>
       </div>
     );
