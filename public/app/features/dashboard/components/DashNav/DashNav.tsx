@@ -19,13 +19,13 @@ import { ShareModal } from 'app/features/dashboard/components/ShareModal';
 import { SaveDashboardModalProxy } from 'app/features/dashboard/components/SaveDashboard/SaveDashboardModalProxy';
 import { sanitizeUrl } from 'app/core/utils/text';
 
-/* eslint-disable */
-declare namespace JSX {
-  interface IntrinsicElements {
-    'x-sauron': any;
+declare global {
+  module JSX {
+    interface IntrinsicElements {
+      'x-sauron': any;
+    }
   }
 }
-/* eslint-enable */
 
 export interface OwnProps {
   dashboard: DashboardModel;
@@ -279,12 +279,14 @@ export class DashNav extends PureComponent<Props> {
         )}
 
         <div>
+          /* eslint-disable */
           <x-sauron
             className="navbar-9box"
             icon-color="#b3b3b3"
             badge-color="red"
             sauron-host="https://sauron.rcluster.io"
           />
+          /* eslint-enable */
         </div>
       </div>
     );

@@ -1,4 +1,7 @@
 {
   "extends": ["@grafana/eslint-config"],
+  "rules": {
+    "@typescript-eslint/no-namespace": "off"
+  },
   "root": true
 }
