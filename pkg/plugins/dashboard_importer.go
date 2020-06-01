@@ -7,7 +7,7 @@ import (
 
 	"github.com/grafana/grafana/pkg/bus"
 	"github.com/grafana/grafana/pkg/components/simplejson"
-	m "github.com/grafana/grafana/pkg/models"
+	"github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/services/dashboards"
 )
 
@@ -16,9 +16,10 @@ type ImportDashboardCommand struct {
 	Path      string
 	Inputs    []ImportDashboardInput
 	Overwrite bool
+	FolderId  int64
 
 	OrgId    int64
-	User     *m.SignedInUser
+	User     *models.SignedInUser
 	PluginId string
 	Result   *PluginDashboardInfoDTO
 }
@@ -43,7 +44,7 @@ func init() {
 }
 
 func ImportDashboard(cmd *ImportDashboardCommand) error {
-	var dashboard *m.Dashboard
+	var dashboard *models.Dashboard
 	var err error
 
 	if cmd.PluginId != "" {
@@ -51,7 +52,7 @@ func ImportDashboard(cmd *ImportDashboardCommand) error {
 			return err
 		}
 	} else {
-		dashboard = m.NewDashboardFromJson(cmd.Dashboard)
+		dashboard = models.NewDashboardFromJson(cmd.Dashboard)
 	}
 
 	evaluator := &DashTemplateEvaluator{
@@ -64,13 +65,13 @@ func ImportDashboard(cmd *ImportDashboardCommand) error {
 		return err
 	}
 
-	saveCmd := m.SaveDashboardCommand{
+	saveCmd := models.SaveDashboardCommand{
 		Dashboard: generatedDash,
 		OrgId:     cmd.OrgId,
 		UserId:    cmd.User.UserId,
 		Overwrite: cmd.Overwrite,
 		PluginId:  cmd.PluginId,
-		FolderId:  dashboard.FolderId,
+		FolderId:  cmd.FolderId,
 	}
 
 	dto := &dashboards.SaveDashboardDTO{
@@ -91,10 +92,13 @@ func ImportDashboard(cmd *ImportDashboardCommand) error {
 		Title:            savedDash.Title,
 		Path:             cmd.Path,
 		Revision:         savedDash.Data.Get("revision").MustInt64(1),
+		FolderId:         savedDash.FolderId,
 		ImportedUri:      "db/" + savedDash.Slug,
 		ImportedUrl:      savedDash.GetUrl(),
 		ImportedRevision: dashboard.Data.Get("revision").MustInt64(1),
 		Imported:         true,
+		DashboardId:      savedDash.Id,
+		Slug:             savedDash.Slug,
 	}
 
 	return nil
@@ -148,11 +152,11 @@ func (this *DashTemplateEvaluator) evalValue(source *simplejson.Json) interface{
 	switch v := sourceValue.(type) {
 	case string:
 		interpolated := this.varRegex.ReplaceAllStringFunc(v, func(match string) string {
-			if replacement, exists := this.variables[match]; exists {
+			replacement, exists := this.variables[match]
+			if exists {
 				return replacement
-			} else {
-				return match
 			}
+			return match
 		})
 		return interpolated
 	case bool:

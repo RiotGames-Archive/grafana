@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"strconv"
+
 	"github.com/grafana/grafana/pkg/tsdb"
 	. "github.com/smartystreets/goconvey/convey"
-	"strconv"
-	"time"
 )
 
 func testElasticSearchResponse(requestJSON string, expectedElasticSearchRequestJSON string) {
@@ -22,7 +22,6 @@ func testElasticSearchResponse(requestJSON string, expectedElasticSearchRequestJ
 	testTimeRange := &tsdb.TimeRange{
 		From: "5m",
 		To:   "now",
-		Now:  time.Now(),
 	}
 
 	queryJSON, err := model.buildQueryJSON(testTimeRange)

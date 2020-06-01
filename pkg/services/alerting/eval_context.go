@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/grafana/grafana/pkg/bus"
-	"github.com/grafana/grafana/pkg/log"
-	m "github.com/grafana/grafana/pkg/models"
+	"github.com/grafana/grafana/pkg/infra/log"
+	"github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/setting"
-	"strings"
 )
 
+// EvalContext is the context object for an alert evaluation.
 type EvalContext struct {
 	Firing         bool
 	IsTestRun      bool
+	IsDebug        bool
 	EvalMatches    []*EvalMatch
 	Logs           []*ResultLogEntry
 	Error          error
@@ -24,16 +25,17 @@ type EvalContext struct {
 	Rule           *Rule
 	log            log.Logger
 
-	dashboardRef *m.DashboardRef
+	dashboardRef *models.DashboardRef
 
-	ImagePublicUrl  string
+	ImagePublicURL  string
 	ImageOnDiskPath string
 	NoDataFound     bool
-	PrevAlertState  m.AlertStateType
+	PrevAlertState  models.AlertStateType
 
 	Ctx context.Context
 }
 
+// NewEvalContext is the EvalContext constructor.
 func NewEvalContext(alertCtx context.Context, rule *Rule) *EvalContext {
 	return &EvalContext{
 		Ctx:            alertCtx,
@@ -46,52 +48,62 @@ func NewEvalContext(alertCtx context.Context, rule *Rule) *EvalContext {
 	}
 }
 
+// StateDescription contains visual information about the alert state.
 type StateDescription struct {
 	Color string
 	Text  string
 	Data  string
 }
 
+// GetStateModel returns the `StateDescription` based on current state.
 func (c *EvalContext) GetStateModel() *StateDescription {
 	switch c.Rule.State {
-	case m.AlertStateOK:
+	case models.AlertStateOK:
 		return &StateDescription{
 			Color: "#36a64f",
 			Text:  "OK",
 		}
-	case m.AlertStateNoData:
+	case models.AlertStateNoData:
 		return &StateDescription{
 			Color: "#888888",
 			Text:  "No Data",
 		}
-	case m.AlertStateAlerting:
+	case models.AlertStateAlerting:
 		return &StateDescription{
 			Color: "#D63232",
 			Text:  "Alerting",
 		}
+	case models.AlertStateUnknown:
+		return &StateDescription{
+			Color: "#888888",
+			Text:  "Unknown",
+		}
 	default:
-		panic("Unknown rule state " + c.Rule.State)
+		panic("Unknown rule state for alert " + c.Rule.State)
 	}
 }
 
-func (c *EvalContext) ShouldUpdateAlertState() bool {
+func (c *EvalContext) shouldUpdateAlertState() bool {
 	return c.Rule.State != c.PrevAlertState
 }
 
-func (a *EvalContext) GetDurationMs() float64 {
-	return float64(a.EndTime.Nanosecond()-a.StartTime.Nanosecond()) / float64(1000000)
+// GetDurationMs returns the duration of the alert evaluation.
+func (c *EvalContext) GetDurationMs() float64 {
+	return float64(c.EndTime.Nanosecond()-c.StartTime.Nanosecond()) / float64(1000000)
 }
 
+// GetNotificationTitle returns the title of the alert rule including alert state.
 func (c *EvalContext) GetNotificationTitle() string {
 	return "[" + c.GetStateModel().Text + "] " + c.Rule.Name
 }
 
-func (c *EvalContext) GetDashboardUID() (*m.DashboardRef, error) {
+// GetDashboardUID returns the dashboard uid for the alert rule.
+func (c *EvalContext) GetDashboardUID() (*models.DashboardRef, error) {
 	if c.dashboardRef != nil {
 		return c.dashboardRef, nil
 	}
 
-	uidQuery := &m.GetDashboardRefByIdQuery{Id: c.Rule.DashboardId}
+	uidQuery := &models.GetDashboardRefByIdQuery{Id: c.Rule.DashboardID}
 	if err := bus.Dispatch(uidQuery); err != nil {
 		return nil, err
 	}
@@ -100,91 +112,69 @@ func (c *EvalContext) GetDashboardUID() (*m.DashboardRef, error) {
 	return c.dashboardRef, nil
 }
 
-const urlFormat = "%s?fullscreen=true&edit=true&tab=alert&panelId=%d&orgId=%d&from=%d&to=%d"
+const urlFormat = "%s?fullscreen&edit&tab=alert&panelId=%d&orgId=%d"
 
-func (c *EvalContext) GetRuleUrl() (string, error) {
+// GetRuleURL returns the url to the dashboard containing the alert.
+func (c *EvalContext) GetRuleURL() (string, error) {
 	if c.IsTestRun {
 		return setting.AppUrl, nil
 	}
 
-	if ref, err := c.GetDashboardUID(); err != nil {
+	ref, err := c.GetDashboardUID()
+	if err != nil {
 		return "", err
-	} else {
-		from, to := c.GetFromToAsMilliseconds()
-		return fmt.Sprintf(urlFormat, m.GetFullDashboardUrl(ref.Uid, ref.Slug), c.Rule.PanelId, c.Rule.OrgId, from, to), nil
 	}
+	return fmt.Sprintf(urlFormat, models.GetFullDashboardUrl(ref.Uid, ref.Slug), c.Rule.PanelID, c.Rule.OrgID), nil
 }
 
-const gapDuration = time.Minute * 30
-const maxSlide = time.Hour*24*2 + gapDuration // Two days + gap duration
-const maxDuration time.Duration = 1<<63 - 1
-
-func (c *EvalContext) GetFromToAsMilliseconds() (int64, int64) {
-	toSlide := maxDuration
-	window := 0 * time.Minute
-	var from, to time.Time
-
-	for _, cond := range c.Rule.Conditions {
-		queryWindow, err := time.ParseDuration(cond.From())
-		if err == nil && queryWindow > window {
-			window = queryWindow
-		}
-		if strings.Contains(cond.To(), "now-") {
-			end := strings.Replace(cond.To(), "now-", "", -1)
-			endSlide, err := time.ParseDuration(end)
-			if err != nil {
-				endSlide = maxDuration
-			}
-			if endSlide < toSlide {
-				toSlide = endSlide
-			}
-		}
+// GetNewState returns the new state from the alert rule evaluation.
+func (c *EvalContext) GetNewState() models.AlertStateType {
+	ns := getNewStateInternal(c)
+	if ns != models.AlertStateAlerting || c.Rule.For == 0 {
+		return ns
 	}
 
-	if toSlide == maxDuration {
-		toSlide = 0
+	since := time.Since(c.Rule.LastStateChange)
+	if c.PrevAlertState == models.AlertStatePending && since > c.Rule.For {
+		return models.AlertStateAlerting
 	}
 
-	totalSlide := window + toSlide + gapDuration
-	if totalSlide > maxSlide {
-		totalSlide = maxSlide
+	if c.PrevAlertState == models.AlertStateAlerting {
+		return models.AlertStateAlerting
 	}
 
-	from = c.StartTime.Add(-1 * totalSlide)
-	to = c.StartTime.Add(-1 * toSlide)
-	toMillis := func(aTime time.Time) int64 {
-		return aTime.UnixNano() / int64(time.Millisecond)
-	}
-	return toMillis(from), toMillis(to)
+	return models.AlertStatePending
 }
 
-func (c *EvalContext) GetNewState() m.AlertStateType {
+func getNewStateInternal(c *EvalContext) models.AlertStateType {
 	if c.Error != nil {
 		c.log.Error("Alert Rule Result Error",
-			"ruleId", c.Rule.Id,
+			"ruleId", c.Rule.ID,
 			"name", c.Rule.Name,
 			"error", c.Error,
 			"changing state to", c.Rule.ExecutionErrorState.ToAlertState())
 
-		if c.Rule.ExecutionErrorState == m.ExecutionErrorKeepState {
+		if c.Rule.ExecutionErrorState == models.ExecutionErrorKeepState {
 			return c.PrevAlertState
 		}
 		return c.Rule.ExecutionErrorState.ToAlertState()
+	}
 
-	} else if c.Firing {
-		return m.AlertStateAlerting
+	if c.Firing {
+		return models.AlertStateAlerting
+	}
 
-	} else if c.NoDataFound {
+	if c.NoDataFound {
 		c.log.Info("Alert Rule returned no data",
-			"ruleId", c.Rule.Id,
+			"ruleId", c.Rule.ID,
 			"name", c.Rule.Name,
 			"changing state to", c.Rule.NoDataState.ToAlertState())
 
-		if c.Rule.NoDataState == m.NoDataKeepState {
+		if c.Rule.NoDataState == models.NoDataKeepState {
 			return c.PrevAlertState
 		}
 		return c.Rule.NoDataState.ToAlertState()
 	}
 
-	return m.AlertStateOK
+	return models.AlertStateOK
 }

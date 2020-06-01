@@ -6,7 +6,6 @@ import (
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/tsdb"
 	. "github.com/smartystreets/goconvey/convey"
-	"time"
 )
 
 func TestElasticGetPreferredNamesForQuery(t *testing.T) {
@@ -80,7 +79,6 @@ func TestElasticsearchGetIndexList(t *testing.T) {
 		timeRange := &tsdb.TimeRange{
 			From: "48h",
 			To:   "now",
-			Now:  time.Date(2017, time.February, 18, 12, 0, 0, 0, time.Local),
 		}
 
 		Convey("Parse Interval Formats", func() {

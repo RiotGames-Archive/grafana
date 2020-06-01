@@ -9,10 +9,14 @@ import { DatasourceVariable } from './datasource_variable';
 import { CustomVariable } from './custom_variable';
 import { ConstantVariable } from './constant_variable';
 import { AdhocVariable } from './adhoc_variable';
+import { TextBoxVariable } from './TextBoxVariable';
+import { variableAdapters } from './adapters';
+import { createQueryVariableAdapter } from './query/adapter';
+import { createCustomVariableAdapter } from './custom/adapter';
+import { createTextBoxVariableAdapter } from './textbox/adapter';
+import { createConstantVariableAdapter } from './constant/adapter';
 
-coreModule.factory('templateSrv', function() {
-  return templateSrv;
-});
+coreModule.factory('templateSrv', () => templateSrv);
 
 export {
   VariableSrv,
@@ -22,4 +26,10 @@ export {
   CustomVariable,
   ConstantVariable,
   AdhocVariable,
+  TextBoxVariable,
 };
+
+variableAdapters.set('query', createQueryVariableAdapter());
+variableAdapters.set('custom', createCustomVariableAdapter());
+variableAdapters.set('textbox', createTextBoxVariableAdapter());
+variableAdapters.set('constant', createConstantVariableAdapter());

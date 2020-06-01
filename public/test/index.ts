@@ -1,8 +1,3 @@
-// const context = require.context('./', true, /_specs\.ts/);
-// context.keys().forEach(context);
-// module.exports = context;
-
-import 'babel-polyfill';
 import 'jquery';
 import angular from 'angular';
 import 'angular-mocks';
@@ -21,11 +16,7 @@ angular.module('grafana.directives', []);
 angular.module('grafana.filters', []);
 angular.module('grafana.routes', ['ngRoute']);
 
-const context = (<any>require).context('../', true, /specs\.(tsx?|js)/);
-for (let key of context.keys()) {
+const context = (require as any).context('../', true, /specs\.(tsx?|js)/);
+for (const key of context.keys()) {
   context(key);
 }
-
-
-
-

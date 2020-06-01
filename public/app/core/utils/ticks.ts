@@ -1,5 +1,3 @@
-import { getDataMinMax } from 'app/core/time_series2';
-
 /**
  * Calculate tick step.
  * Implementation from d3-array (ticks.js)
@@ -9,13 +7,13 @@ import { getDataMinMax } from 'app/core/time_series2';
  * @param count Ticks count
  */
 export function tickStep(start: number, stop: number, count: number): number {
-  let e10 = Math.sqrt(50),
+  const e10 = Math.sqrt(50),
     e5 = Math.sqrt(10),
     e2 = Math.sqrt(2);
 
-  let step0 = Math.abs(stop - start) / Math.max(0, count),
-    step1 = Math.pow(10, Math.floor(Math.log(step0) / Math.LN10)),
-    error = step0 / step1;
+  const step0 = Math.abs(stop - start) / Math.max(0, count);
+  let step1 = Math.pow(10, Math.floor(Math.log(step0) / Math.LN10));
+  const error = step0 / step1;
 
   if (error >= e10) {
     step1 *= 10;
@@ -28,8 +26,8 @@ export function tickStep(start: number, stop: number, count: number): number {
   return stop < start ? -step1 : step1;
 }
 
-export function getScaledDecimals(decimals, tick_size) {
-  return decimals - Math.floor(Math.log(tick_size) / Math.LN10);
+export function getScaledDecimals(decimals: number, tickSize: number) {
+  return decimals - Math.floor(Math.log(tickSize) / Math.LN10);
 }
 
 /**
@@ -41,13 +39,13 @@ export function getScaledDecimals(decimals, tick_size) {
  * @param tickDecimals  Tick decimal precision
  */
 export function getFlotTickSize(min: number, max: number, noTicks: number, tickDecimals: number) {
-  var delta = (max - min) / noTicks,
-    dec = -Math.floor(Math.log(delta) / Math.LN10),
-    maxDec = tickDecimals;
+  const delta = (max - min) / noTicks;
+  let dec = -Math.floor(Math.log(delta) / Math.LN10);
+  const maxDec = tickDecimals;
 
-  var magn = Math.pow(10, -dec),
-    norm = delta / magn, // norm is between 1.0 and 10.0
-    size;
+  const magn = Math.pow(10, -dec);
+  const norm = delta / magn; // norm is between 1.0 and 10.0
+  let size;
 
   if (norm < 1.5) {
     size = 1;
@@ -73,18 +71,18 @@ export function getFlotTickSize(min: number, max: number, noTicks: number, tickD
  * Calculate axis range (min and max).
  * Implementation from Flot.
  */
-export function getFlotRange(panelMin, panelMax, datamin, datamax) {
+export function getFlotRange(panelMin: any, panelMax: any, datamin: number, datamax: number) {
   const autoscaleMargin = 0.02;
 
   let min = +(panelMin != null ? panelMin : datamin);
   let max = +(panelMax != null ? panelMax : datamax);
-  let delta = max - min;
+  const delta = max - min;
 
   if (delta === 0.0) {
     // Grafana fix: wide Y min and max using increased wideFactor
     // when all series values are the same
-    var wideFactor = 0.25;
-    var widen = Math.abs(max === 0 ? 1 : max * wideFactor);
+    const wideFactor = 0.25;
+    const widen = Math.abs(max === 0 ? 1 : max * wideFactor);
 
     if (panelMin === null) {
       min -= widen;
@@ -96,7 +94,7 @@ export function getFlotRange(panelMin, panelMax, datamin, datamax) {
     }
   } else {
     // consider autoscaling
-    var margin = autoscaleMargin;
+    const margin = autoscaleMargin;
     if (margin != null) {
       if (panelMin == null) {
         min -= delta * margin;
@@ -121,17 +119,15 @@ export function getFlotRange(panelMin, panelMax, datamin, datamax) {
  * Calculate tick decimals.
  * Implementation from Flot.
  */
-export function getFlotTickDecimals(data, axis) {
-  let { datamin, datamax } = getDataMinMax(data);
-  let { min, max } = getFlotRange(axis.min, axis.max, datamin, datamax);
-  let noTicks = 3;
-  let tickDecimals, maxDec;
-  let delta = (max - min) / noTicks;
-  let dec = -Math.floor(Math.log(delta) / Math.LN10);
+export function getFlotTickDecimals(datamin: number, datamax: number, axis: { min: any; max: any }, height: number) {
+  const { min, max } = getFlotRange(axis.min, axis.max, datamin, datamax);
+  const noTicks = 0.3 * Math.sqrt(height);
+  const delta = (max - min) / noTicks;
+  const dec = -Math.floor(Math.log(delta) / Math.LN10);
 
-  let magn = Math.pow(10, -dec);
+  const magn = Math.pow(10, -dec);
   // norm is between 1.0 and 10.0
-  let norm = delta / magn;
+  const norm = delta / magn;
   let size;
 
   if (norm < 1.5) {
@@ -139,19 +135,17 @@ export function getFlotTickDecimals(data, axis) {
   } else if (norm < 3) {
     size = 2;
     // special case for 2.5, requires an extra decimal
-    if (norm > 2.25 && (maxDec == null || dec + 1 <= maxDec)) {
+    if (norm > 2.25) {
       size = 2.5;
-      ++dec;
     }
   } else if (norm < 7.5) {
     size = 5;
   } else {
     size = 10;
   }
-
   size *= magn;
 
-  tickDecimals = Math.max(0, maxDec != null ? maxDec : dec);
+  const tickDecimals = Math.max(0, -Math.floor(Math.log(delta) / Math.LN10) + 1);
   // grafana addition
   const scaledDecimals = tickDecimals - Math.floor(Math.log(size) / Math.LN10);
   return { tickDecimals, scaledDecimals };
@@ -163,12 +157,12 @@ export function getFlotTickDecimals(data, axis) {
  * @param min Time from (in milliseconds)
  * @param max Time to (in milliseconds)
  */
-export function grafanaTimeFormat(ticks, min, max) {
+export function grafanaTimeFormat(ticks: number, min: number, max: number) {
   if (min && max && ticks) {
-    let range = max - min;
-    let secPerTick = range / ticks / 1000;
-    let oneDay = 86400000;
-    let oneYear = 31536000000;
+    const range = max - min;
+    const secPerTick = range / ticks / 1000;
+    const oneDay = 86400000;
+    const oneYear = 31536000000;
 
     if (secPerTick <= 45) {
       return '%H:%M:%S';
@@ -191,7 +185,7 @@ export function grafanaTimeFormat(ticks, min, max) {
 /**
  * Logarithm of value for arbitrary base.
  */
-export function logp(value, base) {
+export function logp(value: number, base: number) {
   return Math.log(value) / Math.log(base);
 }
 
@@ -199,7 +193,7 @@ export function logp(value, base) {
  * Get decimal precision of number (3.14 => 2)
  */
 export function getPrecision(num: number): number {
-  let str = num.toString();
+  const str = num.toString();
   return getStringPrecision(str);
 }
 
@@ -207,10 +201,14 @@ export function getPrecision(num: number): number {
  * Get decimal precision of number stored as a string ("3.14" => 2)
  */
 export function getStringPrecision(num: string): number {
-  let dot_index = num.indexOf('.');
-  if (dot_index === -1) {
+  if (isNaN((num as unknown) as number)) {
+    return 0;
+  }
+
+  const dotIndex = num.indexOf('.');
+  if (dotIndex === -1) {
     return 0;
   } else {
-    return num.length - dot_index - 1;
+    return num.length - dotIndex - 1;
   }
 }

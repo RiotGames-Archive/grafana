@@ -2,7 +2,7 @@ package sqlstore
 
 import (
 	"github.com/grafana/grafana/pkg/bus"
-	m "github.com/grafana/grafana/pkg/models"
+	"github.com/grafana/grafana/pkg/models"
 )
 
 func init() {
@@ -10,7 +10,7 @@ func init() {
 	bus.AddHandler("sql", GetDashboardAclInfoList)
 }
 
-func UpdateDashboardAcl(cmd *m.UpdateDashboardAclCommand) error {
+func UpdateDashboardAcl(cmd *models.UpdateDashboardAclCommand) error {
 	return inTransaction(func(sess *DBSession) error {
 		// delete existing items
 		_, err := sess.Exec("DELETE FROM dashboard_acl WHERE dashboard_id=?", cmd.DashboardId)
@@ -20,11 +20,11 @@ func UpdateDashboardAcl(cmd *m.UpdateDashboardAclCommand) error {
 
 		for _, item := range cmd.Items {
 			if item.UserId == 0 && item.TeamId == 0 && (item.Role == nil || !item.Role.IsValid()) {
-				return m.ErrDashboardAclInfoMissing
+				return models.ErrDashboardAclInfoMissing
 			}
 
 			if item.DashboardId == 0 {
-				return m.ErrDashboardPermissionDashboardEmpty
+				return models.ErrDashboardPermissionDashboardEmpty
 			}
 
 			sess.Nullable("user_id", "team_id")
@@ -34,11 +34,9 @@ func UpdateDashboardAcl(cmd *m.UpdateDashboardAclCommand) error {
 		}
 
 		// Update dashboard HasAcl flag
-		dashboard := m.Dashboard{HasAcl: true}
-		if _, err := sess.Cols("has_acl").Where("id=?", cmd.DashboardId).Update(&dashboard); err != nil {
-			return err
-		}
-		return nil
+		dashboard := models.Dashboard{HasAcl: true}
+		_, err = sess.Cols("has_acl").Where("id=?", cmd.DashboardId).Update(&dashboard)
+		return err
 	})
 }
 
@@ -47,7 +45,7 @@ func UpdateDashboardAcl(cmd *m.UpdateDashboardAclCommand) error {
 // 1) Permissions for the dashboard
 // 2) permissions for its parent folder
 // 3) if no specific permissions have been set for the dashboard or its parent folder then get the default permissions
-func GetDashboardAclInfoList(query *m.GetDashboardAclInfoListQuery) error {
+func GetDashboardAclInfoList(query *models.GetDashboardAclInfoListQuery) error {
 	var err error
 
 	falseStr := dialect.BooleanStr(false)
@@ -69,10 +67,11 @@ func GetDashboardAclInfoList(query *m.GetDashboardAclInfoListQuery) error {
 		'' as title,
 		'' as slug,
 		'' as uid,` +
-			falseStr + ` AS is_folder
+			falseStr + ` AS is_folder,` +
+			falseStr + ` AS inherited
 		FROM dashboard_acl as da
 		WHERE da.dashboard_id = -1`
-		query.Result = make([]*m.DashboardAclInfoDTO, 0)
+		query.Result = make([]*models.DashboardAclInfoDTO, 0)
 		err = x.SQL(sql).Find(&query.Result)
 
 	} else {
@@ -92,10 +91,12 @@ func GetDashboardAclInfoList(query *m.GetDashboardAclInfoListQuery) error {
 				u.login AS user_login,
 				u.email AS user_email,
 				ug.name AS team,
+				ug.email AS team_email,
 				d.title,
 				d.slug,
 				d.uid,
-				d.is_folder
+				d.is_folder,
+				CASE WHEN (da.dashboard_id = -1 AND d.folder_id > 0) OR da.dashboard_id = d.folder_id THEN ` + dialect.BooleanStr(true) + ` ELSE ` + falseStr + ` END AS inherited
 			FROM dashboard as d
 				LEFT JOIN dashboard folder on folder.id = d.folder_id
 				LEFT JOIN dashboard_acl AS da ON
@@ -111,10 +112,10 @@ func GetDashboardAclInfoList(query *m.GetDashboardAclInfoListQuery) error {
 				LEFT JOIN ` + dialect.Quote("user") + ` AS u ON u.id = da.user_id
 				LEFT JOIN team ug on ug.id = da.team_id
 			WHERE d.org_id = ? AND d.id = ? AND da.id IS NOT NULL
-			ORDER BY 1 ASC
+			ORDER BY da.id ASC
 			`
 
-		query.Result = make([]*m.DashboardAclInfoDTO, 0)
+		query.Result = make([]*models.DashboardAclInfoDTO, 0)
 		err = x.SQL(rawSQL, query.OrgId, query.DashboardId).Find(&query.Result)
 	}
 

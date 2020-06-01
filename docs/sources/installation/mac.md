@@ -1,77 +1,50 @@
 +++
-title = "Installing on Mac"
-description = "Installing Grafana on Mac"
+title = "Install on macOS"
+description = "Installing Grafana on macOS"
 keywords = ["grafana", "configuration", "documentation", "mac", "homebrew", "osx"]
 type = "docs"
 [menu.docs]
 parent = "installation"
-weight = 4
+weight = 500
 +++
 
+# Install on macOS
 
-# Installing on Mac
+This page provides instructions to help you install Grafana on macOS. 
 
-Installation can be done using [homebrew](http://brew.sh/)
+**Note on upgrading:** While the process for upgrading Grafana is very similar to installing Grafana, there are some key backup steps you should perform. Read [Upgrading Grafana]({{< relref "upgrading.md" >}}) for tips and guidance on updating an existing installation.
 
-Install latest stable:
+## 1. Download and install
 
-```bash
-brew update
-brew install grafana
-```
+Before you begin, you must have [Homebrew](http://brew.sh/) installed.
 
-To start grafana look at the command printed after the homebrew install completes.
+1. On the [Grafana download page](https://grafana.com/grafana/download?platform=mac), select the Grafana version you want to install. 
+   * The most recent Grafana version is selected by default.
+   * The **Version** field displays only finished releases. If you want to install a beta version, click **Nightly Builds** and then select a version.
+2. Select an **Edition**.
+   * **Open Source** - Functionally identical to the enterprise version, but you will need to download the enterprise version if you want enterprise features.
+   * **Enterprise** - Not currently available for Mac.
+3. Click **Mac**.
+4. Copy and paste the code from the installation page into your command line and run. It follows the pattern shown below.
 
-To upgrade use the reinstall command
+   ```bash
+   brew update
+   brew install grafana
+   ```
 
-```bash
-brew update
-brew reinstall grafana
-```
+## 2. Start Grafana
 
--------------
-
-You can also install the latest unstable grafana from git:
-
-
-```bash
-brew install --HEAD grafana/grafana/grafana
-```
-
-To upgrade grafana if you've installed from HEAD:
-
-```bash
-brew reinstall --HEAD grafana/grafana/grafana
-```
-
-### Starting Grafana
-
-To start Grafana using homebrew services first make sure homebrew/services is installed.
-
-```bash
-brew tap homebrew/services
-```
-
-Then start Grafana using:
+Start Grafana using Homebrew services: 
 
 ```bash
 brew services start grafana
 ```
 
+## Upgrade with Homebrew
 
-### Configuration
+To upgrade Grafana, use the reinstall command:
 
-The Configuration file should be located at `/usr/local/etc/grafana/grafana.ini`.
-
-### Logs
-
-The log file should be located at `/usr/local/var/log/grafana/grafana.log`.
-
-### Plugins
-
-If you want to manually install a plugin place it here: `/usr/local/var/lib/grafana/plugins`.
-
-### Database
-
-The default sqlite database is located at `/usr/local/var/lib/grafana`
-
+```bash
+brew update
+brew reinstall grafana
+```

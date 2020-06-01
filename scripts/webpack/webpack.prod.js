@@ -1,67 +1,126 @@
 'use strict';
 
 const merge = require('webpack-merge');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const common = require('./webpack.common.js');
-const webpack = require('webpack');
 const path = require('path');
-const ngAnnotatePlugin = require('ng-annotate-webpack-plugin');
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 
 module.exports = merge(common, {
-  devtool: "source-map",
+  mode: 'production',
+  devtool: 'source-map',
 
   entry: {
     dark: './public/sass/grafana.dark.scss',
     light: './public/sass/grafana.light.scss',
-    vendor: require('./dependencies'),
   },
 
   module: {
+    // Note: order is bottom-to-top and/or right-to-left
     rules: [
+      {
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              cacheDirectory: true,
+              babelrc: false,
+              // Note: order is top-to-bottom and/or left-to-right
+              plugins: [
+                [
+                  require('@rtsao/plugin-proposal-class-properties'),
+                  {
+                    loose: true,
+                  },
+                ],
+                '@babel/plugin-proposal-nullish-coalescing-operator',
+                '@babel/plugin-proposal-optional-chaining',
+                '@babel/plugin-syntax-dynamic-import', // needed for `() => import()` in routes.ts
+                'angularjs-annotate',
+              ],
+              // Note: order is bottom-to-top and/or right-to-left
+              presets: [
+                [
+                  '@babel/preset-env',
+                  {
+                    targets: {
+                      browsers: 'last 3 versions',
+                    },
+                    useBuiltIns: 'entry',
+                    corejs: 3,
+                    modules: false,
+                  },
+                ],
+                [
+                  '@babel/preset-typescript',
+                  {
+                    allowNamespaces: true,
+                  },
+                ],
+                '@babel/preset-react',
+              ],
+            },
+          },
+          {
+            loader: 'eslint-loader',
+            options: {
+              emitError: true,
+              emitWarning: true,
+            },
+          },
+        ],
+      },
       require('./sass.rule.js')({
-        sourceMap: false, minimize: true
-      })
-    ]
+        sourceMap: false,
+        preserveUrl: false,
+      }),
+    ],
   },
-
-  devServer: {
-    noInfo: true,
-    stats: {
-      chunks: false,
-    },
+  optimization: {
+    nodeEnv: 'production',
+    minimizer: [
+      new TerserPlugin({
+        cache: false,
+        parallel: false,
+        sourceMap: true,
+      }),
+      new OptimizeCSSAssetsPlugin({}),
+    ],
   },
-
   plugins: [
-    new ExtractTextPlugin({
-      filename: 'grafana.[name].css',
+    new ForkTsCheckerWebpackPlugin({
+      checkSyntacticErrors: true,
+      memoryLimit: 4096,
     }),
-    new ngAnnotatePlugin(),
-    new UglifyJSPlugin({
-      sourceMap: true,
+    new MiniCssExtractPlugin({
+      filename: 'grafana.[name].[hash].css',
     }),
-    new webpack.DefinePlugin({
-      'process.env': {
-        'NODE_ENV': JSON.stringify('production')
-      }
+    new HtmlWebpackPlugin({
+      filename: path.resolve(__dirname, '../../public/views/error.html'),
+      template: path.resolve(__dirname, '../../public/views/error-template.html'),
+      inject: false,
+      excludeChunks: ['dark', 'light'],
+      chunksSortMode: 'none',
     }),
     new HtmlWebpackPlugin({
       filename: path.resolve(__dirname, '../../public/views/index.html'),
-      template: path.resolve(__dirname, '../../public/views/index.template.html'),
-      inject: 'body',
-      chunks: ['manifest', 'vendor', 'app'],
-    }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: ['vendor', 'manifest'],
+      template: path.resolve(__dirname, '../../public/views/index-template.html'),
+      inject: false,
+      excludeChunks: ['manifest', 'dark', 'light'],
+      chunksSortMode: 'none',
     }),
     function() {
-      this.plugin("done", function(stats) {
+      this.hooks.done.tap('Done', function(stats) {
         if (stats.compilation.errors && stats.compilation.errors.length) {
           console.log(stats.compilation.errors);
           process.exit(1);
         }
       });
-    }
-  ]
+    },
+  ],
 });
